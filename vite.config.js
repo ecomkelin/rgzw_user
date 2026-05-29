@@ -18,6 +18,9 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       }
-    }
-  }
+    },
+    historyApiFallback: true  // Vite使用spa插件或在开发服务器中处理SPA路由
+  },
+  // 使用下面的配置来处理SPA路由
+  appType: 'spa' // 告诉Vite这是一个单页应用
 })
