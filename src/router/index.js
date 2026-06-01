@@ -57,8 +57,15 @@ const router = createRouter({
   routes
 })
 
+// 简单的路由守卫实现
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+
+  // 如果认证状态还没检查完成（可能刚初始化），允许继续，因为App.vue会处理
+  if (!authStore.isAuthChecked) {
+    next()
+    return
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
