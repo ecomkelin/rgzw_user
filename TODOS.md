@@ -59,9 +59,20 @@
 - [x] 搜索增强功能
 - [x] 全局错误边界（ErrorBoundary + 全局 errorHandler）
 - [x] 统一错误处理机制（normalizeError + http 集成）
-- [x] 测试覆盖率提升（Vitest 43 个用例）
+- [x] 测试覆盖率提升（Vitest 52 个用例）
 - [x] 代码注释完善（关键模块 JSDoc）
 - [x] API 文档完善 (FRONTEND_API.md)
+- [x] 用户引导（基于 el-tour 的 Onboarding 系统）
+
+### 文档编写
+- [x] 项目概述文档 (README.md)
+- [x] 开发者文档 (CLAUDE.md)
+- [x] 页面结构文档 (PAGE_STRUCTURE.md)
+- [x] 开发规范文档 (DEVELOPMENT_STANDARD.md)
+- [x] 搜索增强文档 (SEARCH_ENHANCEMENT.md)
+- [x] 搜索功能详文档 (SEARCH_FEATURE_DETAILS.md)
+- [x] 错误边界文档 (ERROR_BOUNDARY.md)
+- [x] 用户引导文档 (ONBOARDING_GUIDE.md)
 
 ## 技术债务
 - [x] 统一错误处理机制
@@ -74,7 +85,7 @@
 - [ ] 大数据量时表格渲染性能有待提升
 
 ## 建议改进
-- [ ] 添加更完善的用户引导
+- [x] 添加更完善的用户引导
 - [ ] 优化移动端用户体验
 - [ ] 添加离线缓存功能
 - [ ] 实现实时通知功能

@@ -1,10 +1,10 @@
 <template>
   <div class="dashboard">
-    <h2 class="page-title">首页</h2>
+    <h2 class="page-title" id="dashboard-title">首页</h2>
 
-    <el-row :gutter="20" class="dashboard-stats">
+    <el-row :gutter="20" class="dashboard-stats" id="dashboard-stats">
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" id="stat-users">
           <div class="stat-content">
             <div class="stat-icon bg-blue">
               <el-icon><User /></el-icon>
@@ -18,7 +18,7 @@
       </el-col>
 
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" id="stat-students">
           <div class="stat-content">
             <div class="stat-icon bg-green">
               <el-icon><School /></el-icon>
@@ -32,7 +32,7 @@
       </el-col>
 
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" id="stat-orgs">
           <div class="stat-content">
             <div class="stat-icon bg-orange">
               <el-icon><OfficeBuilding /></el-icon>
@@ -46,7 +46,7 @@
       </el-col>
 
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" id="stat-courses">
           <div class="stat-content">
             <div class="stat-icon bg-purple">
               <el-icon><Document /></el-icon>
@@ -62,7 +62,7 @@
 
     <el-row :gutter="20" class="dashboard-content">
       <el-col :span="16">
-        <el-card class="chart-card">
+        <el-card class="chart-card" id="dashboard-chart">
           <template #header>
             <span>用户活动统计</span>
           </template>
@@ -73,7 +73,7 @@
       </el-col>
 
       <el-col :span="8">
-        <el-card class="quick-links">
+        <el-card class="quick-links" id="dashboard-quicklinks">
           <template #header>
             <span>快捷链接</span>
           </template>
@@ -98,6 +98,9 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 首次访问引导 -->
+    <OnboardingGuide tour-key="dashboard" :steps="dashboardTourSteps" />
   </div>
 </template>
 
@@ -110,12 +113,53 @@ import {
   Document,
   DataAnalysis
 } from '@element-plus/icons-vue'
+import OnboardingGuide from '../components/OnboardingGuide.vue'
 
 const router = useRouter()
 
 const goToPage = (path) => {
   router.push(path)
 }
+
+// 引导步骤：与模板中的 id 锚点一一对应
+const dashboardTourSteps = [
+  {
+    target: '#dashboard-title',
+    title: '欢迎使用 RGZW 管理后台 👋',
+    description: '这是您登录后的主页。下面我们用 30 秒带您熟悉主要功能。',
+    placement: 'bottom'
+  },
+  {
+    target: '.layout-aside',
+    title: '侧边栏导航',
+    description: '通过侧边栏可快速切换首页、账户、用户与组织、学员、数据分析等模块。',
+    placement: 'right'
+  },
+  {
+    target: '#dashboard-stats',
+    title: '核心数据概览',
+    description: '这里展示系统关键指标：用户数、学员数、组织数、课程数，一目了然。',
+    placement: 'top'
+  },
+  {
+    target: '#dashboard-chart',
+    title: '活动趋势',
+    description: '展示最近一段时间的用户活动趋势。后续会接入真实图表组件。',
+    placement: 'top'
+  },
+  {
+    target: '#dashboard-quicklinks',
+    title: '快捷入口',
+    description: '点击任意快捷链接直接进入对应管理页。',
+    placement: 'left'
+  },
+  {
+    target: '.layout-header',
+    title: '用户菜单',
+    description: '点击右上角头像可以进入个人资料、设置或退出登录。',
+    placement: 'bottom'
+  }
+]
 </script>
 
 <style scoped>

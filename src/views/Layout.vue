@@ -67,6 +67,7 @@
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人资料</el-dropdown-item>
                 <el-dropdown-item command="settings">设置</el-dropdown-item>
+                <el-dropdown-item command="restart-tour">重新查看引导</el-dropdown-item>
                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -100,6 +101,7 @@ import {
   UserFilled
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { resetTour, startTour } from '../composables/useTour'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,6 +130,14 @@ const handleCommand = async (command) => {
     case 'settings':
       // 跳转到设置页面
       router.push('/layout/settings')
+      break
+    case 'restart-tour':
+      // 强制重置 + 重新启动 dashboard 引导
+      resetTour('dashboard')
+      const started = startTour('dashboard', { force: true })
+      if (!started) {
+        ElMessage.info('请先进入首页查看引导')
+      }
       break
     case 'logout':
       try {
