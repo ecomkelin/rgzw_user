@@ -59,10 +59,11 @@
 - [x] 搜索增强功能
 - [x] 全局错误边界（ErrorBoundary + 全局 errorHandler）
 - [x] 统一错误处理机制（normalizeError + http 集成）
-- [x] 测试覆盖率提升（Vitest 52 个用例）
+- [x] 测试覆盖率提升（Vitest 57 个用例）
 - [x] 代码注释完善（关键模块 JSDoc）
 - [x] API 文档完善 (FRONTEND_API.md)
 - [x] 用户引导（基于 el-tour 的 Onboarding 系统）
+- [x] 移动端体验优化（响应式布局 + 抽屉式导航 + 触摸优化）
 
 ### 文档编写
 - [x] 项目概述文档 (README.md)
@@ -73,6 +74,7 @@
 - [x] 搜索功能详文档 (SEARCH_FEATURE_DETAILS.md)
 - [x] 错误边界文档 (ERROR_BOUNDARY.md)
 - [x] 用户引导文档 (ONBOARDING_GUIDE.md)
+- [x] 移动端体验文档 (MOBILE_UX.md)
 
 ## 技术债务
 - [x] 统一错误处理机制
@@ -86,6 +88,15 @@
 
 ## 建议改进
 - [x] 添加更完善的用户引导
-- [ ] 优化移动端用户体验
+- [x] 优化移动端用户体验
 - [ ] 添加离线缓存功能
 - [ ] 实现实时通知功能
+
+### 来自文档「后续可扩展」项
+- [ ] 错误监控：接入 Sentry / 自研埋点服务（见 ERROR_BOUNDARY.md）
+- [ ] 错误 UX：降级页加「复制错误 ID」按钮（见 ERROR_BOUNDARY.md）
+- [ ] 错误监控：Sentry payload 包含 errorStack（见 ERROR_BOUNDARY.md）
+- [ ] 错误 UX：401/403/网络断开等精细化降级 UI（见 ERROR_BOUNDARY.md）
+- [ ] 移动端：表格横向滚动容器（Students/Users 等，见 MOBILE_UX.md）
+- [ ] 移动端：Swipe-back 手势返回上一页（见 MOBILE_UX.md）
+- [ ] 移动端：横屏 / 折叠屏适配（见 MOBILE_UX.md）

@@ -16,6 +16,20 @@ vi.mock('element-plus', () => ({
   }
 }))
 
+// jsdom 默认不实现 matchMedia：useResponsive / 媒体查询相关代码需要
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},            // 兼容旧 API
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false
+  })
+}
+
 // Pinia 在测试中也用得到
 import { config } from '@vue/test-utils'
 config.global.plugins = []

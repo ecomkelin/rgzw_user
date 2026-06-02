@@ -111,12 +111,15 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh; /* 移动端动态视口高度，避开地址栏 */
+  padding: 16px;
   background: linear-gradient(135deg, #74b9ff, #0984e3);
 }
 
 .login-form {
   width: 400px;
+  max-width: 100%;
   padding: 40px;
   background: white;
   border-radius: 10px;
@@ -136,5 +139,14 @@ const handleLogin = async () => {
 .login-header p {
   color: #636e72;
   font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .login-form {
+    padding: 24px 20px;
+  }
+  .login-header h2 {
+    font-size: 20px;
+  }
 }
 </style>

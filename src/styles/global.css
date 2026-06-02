@@ -1,3 +1,6 @@
+/* ====================================================================
+ * 基础 reset
+ * ==================================================================== */
 * {
   margin: 0;
   padding: 0;
@@ -8,6 +11,15 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 防止移动端误触：禁止 iOS 长按选中 / 系统菜单 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  /* 防止 iOS Safari 弹性滚动导致主内容被遮挡 */
+  height: 100%;
+  overscroll-behavior-y: contain;
 }
 
 #app {
@@ -19,6 +31,9 @@ body {
   height: 100%;
 }
 
+/* ====================================================================
+ * Layout 样式
+ * ==================================================================== */
 .layout-container {
   height: 100vh;
 }
@@ -30,12 +45,12 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
 .layout-aside {
   background-color: #fff;
-  box-shadow: 2px 0 6px rgba(0,21,41,.35);
+  box-shadow: 2px 0 6px rgba(0, 21, 41, .35);
   overflow-y: auto;
 }
 
@@ -43,6 +58,7 @@ body {
   background-color: #f0f2f5;
   padding: 20px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS 顺滑滚动 */
 }
 
 .layout-footer {
@@ -52,6 +68,14 @@ body {
   border-top: 1px solid #e8e8e8;
 }
 
+.layout-footer p {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* ====================================================================
+ * 通用页面元素
+ * ==================================================================== */
 .page-title {
   margin-bottom: 20px;
   font-size: 24px;
@@ -62,6 +86,7 @@ body {
 .table-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap; /* 移动端按钮自动换行 */
 }
 
 .form-container {
@@ -71,4 +96,86 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* ====================================================================
+ * 响应式工具类
+ *
+ *   .hide-on-mobile   ≤768 隐藏
+ *   .hide-on-desktop  >768 隐藏
+ *   .table-scroll-x   表格横向滚动容器
+ * ==================================================================== */
+.table-scroll-x {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-x .el-table {
+  min-width: 640px; /* 列多时强制横向滚动而非挤压 */
+}
+
+/* ====================================================================
+ * 媒体查询
+ * ==================================================================== */
+
+/* ---------- 平板（≤1024） ---------- */
+@media (max-width: 1024px) {
+  .form-container {
+    max-width: 100%;
+  }
+  .layout-header {
+    padding: 0 14px;
+  }
+}
+
+/* ---------- 手机（≤768） ---------- */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+
+  .layout-main {
+    padding: 12px;
+  }
+
+  .layout-header {
+    padding: 0 12px;
+  }
+
+  .form-container {
+    padding: 14px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  /* 表格操作列在窄屏改为图标按钮更紧凑 */
+  .table-actions .el-button span {
+    display: none;
+  }
+}
+
+/* ---------- 桌面（>768） ---------- */
+@media (min-width: 769px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
+/* ---------- 触摸设备微调 ---------- */
+@media (hover: none) and (pointer: coarse) {
+  /* 触摸设备：给可点击元素更大的命中区 */
+  .el-button {
+    min-height: 36px;
+  }
+  .el-menu-item {
+    min-height: 48px;
+  }
+  /* 禁止 iOS 双击放大按钮 */
+  .el-button, .hamburger, .el-dropdown-link {
+    touch-action: manipulation;
+  }
 }

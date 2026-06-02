@@ -169,6 +169,8 @@ dist/assets/ErrorFallback-BpmENjXB.js   1.38 kB │ gzip: 0.87 kB
 
 ## 后续可扩展点
 
+> 以下条目已并入 `../TODOS.md` 的「建议改进 → 来自文档后续可扩展项」跟踪。
+
 - [ ] 在 `reportError` 中接入真实埋点服务（Sentry / 自研后端）
 - [ ] 在降级页面中增加「复制错误 ID」按钮，方便用户反馈问题
 - [ ] 在边界组件中暴露 `errorStack` 字段到 Sentry 上报 payload
