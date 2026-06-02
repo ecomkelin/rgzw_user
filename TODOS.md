@@ -10,7 +10,7 @@
 ## 待办任务
 
 ### 优先级高
-- [ ] 错误边界：添加全局错误边界处理组件崩溃
+- [x] 错误边界：添加全局错误边界处理组件崩溃
 - [ ] 性能优化：实现大数据量表格的虚拟滚动
 - [ ] 安全加固：实施更严格的XSS防护措施
 
@@ -57,6 +57,7 @@
 - [x] 网络请求优化
 - [x] 代码结构优化
 - [x] 搜索增强功能
+- [x] 全局错误边界（ErrorBoundary + 全局 errorHandler）
 
 ### 文档编写
 - [x] 项目概述文档 (README.md)
@@ -65,6 +66,7 @@
 - [x] 开发规范文档 (DEVELOPMENT_STANDARD.md)
 - [x] 搜索增强文档 (SEARCH_ENHANCEMENT.md)
 - [x] 搜索功能详文档 (SEARCH_FEATURE_DETAILS.md)
+- [x] 错误边界文档 (ERROR_BOUNDARY.md)
 
 ## 技术债务
 - [ ] 统一错误处理机制

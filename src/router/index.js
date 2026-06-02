@@ -43,11 +43,22 @@ const routes = [
         name: 'Students',
         component: () => import('../views/students/Students.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'analytics',
+        name: 'Analytics',
+        component: () => import('../views/Analytics.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   },
   {
     path: '/',
+    redirect: '/layout/dashboard'
+  },
+  // 兜底：未匹配到任何路由时跳回首页
+  {
+    path: '/:pathMatch(.*)*',
     redirect: '/layout/dashboard'
   }
 ]
