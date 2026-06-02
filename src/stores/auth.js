@@ -1,3 +1,26 @@
+/**
+ * 认证状态管理（Pinia Store）
+ *
+ * 持有三类状态：
+ *   - user            当前登录用户
+ *   - accessToken     短期 access token（API 请求 Authorization）
+ *   - refreshToken    长期 refresh token（用于刷新 accessToken）
+ *   - isAuthenticated 是否已认证
+ *   - authChecked     是否已完成"恢复 + 校验"流程
+ *
+ * 持久化策略：
+ *   - accessToken / refreshToken / user 都同步写入 localStorage
+ *   - 启动时从 localStorage 恢复，并异步调用 /api/user/self 验证 token 有效性
+ *   - 验证失败时自动清空并跳登录页
+ *
+ * 提供 actions：
+ *   - initializeAuth()  启动时调用，恢复 + 校验
+ *   - setTokens()       登录成功时写入
+ *   - setUser()         写入用户对象
+ *   - logout()          清空所有状态 + 通知后端销毁 refresh cookie
+ *   - checkAuthStatus() 主动校验 token
+ */
+
 import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
@@ -6,7 +29,7 @@ export const useAuthStore = defineStore('auth', {
     accessToken: null,
     refreshToken: null,
     isAuthenticated: false,
-    authChecked: false // 新增：标识认证状态是否已检查
+    authChecked: false // 标识认证状态是否已检查（用于路由守卫）
   }),
 
   getters: {
@@ -16,6 +39,13 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    /**
+     * 应用启动时调用：
+     * 1. 从 localStorage 恢复 token / user
+     * 2. 若有 token，立即将 authChecked=true 放行路由，避免白屏卡顿
+     * 3. 异步调用后端校验 token；失败则清空认证状态
+     * @returns {Promise<void>}
+     */
     async initializeAuth() {
       // 应用启动时初始化认证状态
       const storedAccessToken = localStorage.getItem('accessToken')
@@ -66,6 +96,11 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    /**
+     * 写入 token 并标记已认证
+     * @param {string} accessToken
+     * @param {string|null} refreshToken
+     */
     setTokens(accessToken, refreshToken) {
       this.accessToken = accessToken
       this.refreshToken = refreshToken
@@ -83,12 +118,19 @@ export const useAuthStore = defineStore('auth', {
       });
     },
 
+    /**
+     * 写入当前用户并持久化
+     * @param {object} user
+     */
     setUser(user) {
       this.user = user
       localStorage.setItem('user', JSON.stringify(user))
       console.log('User set in store and localStorage:', !!user);
     },
 
+    /**
+     * 登出：清空 store + localStorage + 通知后端销毁 refresh cookie
+     */
     logout() {
       console.log('Logout called, clearing authentication data');
       this.user = null
@@ -108,6 +150,13 @@ export const useAuthStore = defineStore('auth', {
       }).catch(err => console.error('Logout error:', err))
     },
 
+    /**
+     * 主动校验 accessToken 有效性
+     *  - 200/403：token 有效（403 表示权限不足但 token 本身有效）
+     *  - 401    ：token 失效，自动登出
+     *  - 网络错误：不修改认证状态（避免在弱网下误踢）
+     * @returns {Promise<boolean>} 是否有效
+     */
     async checkAuthStatus() {
       console.log('checkAuthStatus called with accessToken:', !!this.accessToken);
       if (!this.accessToken) {

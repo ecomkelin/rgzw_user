@@ -58,21 +58,16 @@
 - [x] 代码结构优化
 - [x] 搜索增强功能
 - [x] 全局错误边界（ErrorBoundary + 全局 errorHandler）
-
-### 文档编写
-- [x] 项目概述文档 (README.md)
-- [x] 开发者文档 (CLAUDE.md)
-- [x] 页面结构文档 (PAGE_STRUCTURE.md)
-- [x] 开发规范文档 (DEVELOPMENT_STANDARD.md)
-- [x] 搜索增强文档 (SEARCH_ENHANCEMENT.md)
-- [x] 搜索功能详文档 (SEARCH_FEATURE_DETAILS.md)
-- [x] 错误边界文档 (ERROR_BOUNDARY.md)
+- [x] 统一错误处理机制（normalizeError + http 集成）
+- [x] 测试覆盖率提升（Vitest 43 个用例）
+- [x] 代码注释完善（关键模块 JSDoc）
+- [x] API 文档完善 (FRONTEND_API.md)
 
 ## 技术债务
-- [ ] 统一错误处理机制
-- [ ] 测试覆盖率提升
-- [ ] 代码注释完善
-- [ ] API文档完善
+- [x] 统一错误处理机制
+- [x] 测试覆盖率提升
+- [x] 代码注释完善
+- [x] API文档完善
 
 ## 已知问题
 - [ ] 在某些网络环境下token验证可能失败
