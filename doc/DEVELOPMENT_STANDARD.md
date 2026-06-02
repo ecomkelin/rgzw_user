@@ -66,7 +66,6 @@ function getUserInfo(userId) {
 - 目录名: kebab-case (如 `user-management`)
 - 文件名: kebab-case (如 `user-list.vue`)
 - JavaScript 文件: camelCase 或 kebab-case
-- 组件文件: PascalCase
 
 #### 目录结构
 ```
@@ -74,7 +73,8 @@ src/
 ├── components/           # 公共组件
 │   ├── Base/            # 基础组件
 │   ├── Form/            # 表单组件
-│   └── Table/           # 表格组件
+│   ├── Table/           # 表格组件
+│   └── Search/          # 搜索组件（如 AdvancedSearch.vue）
 ├── views/               # 页面组件
 │   ├── User/            # 用户模块页面
 │   ├── Account/         # 账户模块页面
@@ -315,9 +315,88 @@ router.beforeEach((to, from, next) => {
 });
 ```
 
-## 6. 样式规范
+## 6. 搜索功能规范
 
-### 6.1 CSS 类名规范
+### 6.1 高级搜索组件规范
+
+高级搜索功能使用统一的 `AdvancedSearch` 组件，遵循以下规范：
+
+```vue
+<!-- 在需要高级搜索的页面中使用 -->
+<template>
+  <div class="page-container">
+    <!-- 基础搜索栏 -->
+    <BasicSearch @search="handleBasicSearch" />
+    
+    <!-- 高级搜索面板 -->
+    <AdvancedSearch @search="handleAdvancedSearch" @reset="handleAdvancedReset" />
+    
+    <!-- 数据表格 -->
+    <DataTable :data="filteredData" />
+  </div>
+</template>
+```
+
+### 6.2 搜索参数处理
+
+```javascript
+// 搜索参数结构
+const searchParams = {
+  keyword: '',           // 关键词搜索
+  dateRange: [],         // 日期范围
+  category: '',          // 分类筛选
+  status: '',            // 状态筛选
+  rangeFilters: {}       // 范围过滤器对象
+};
+
+// 高级搜索处理
+const handleAdvancedSearch = (params) => {
+  // 将高级搜索参数合并到主搜索条件
+  Object.assign(searchParams, params);
+  fetchData(); // 重新获取数据
+};
+```
+
+### 6.3 搜索查询构建
+
+```javascript
+// 构建查询条件
+const buildQueryFilter = (searchParams) => {
+  const filter = {};
+
+  // 关键词搜索（多字段）
+  if (searchParams.keyword) {
+    filter.$or = [
+      { name: { $regex: searchParams.keyword, $options: 'i' } },
+      { description: { $regex: searchParams.keyword, $options: 'i' } }
+    ];
+  }
+
+  // 时间范围筛选
+  if (searchParams.dateRange && searchParams.dateRange.length === 2) {
+    filter.createdAt = {
+      $gte: new Date(searchParams.dateRange[0]),
+      $lte: new Date(searchParams.dateRange[1])
+    };
+  }
+
+  // 分类筛选
+  if (searchParams.category) {
+    filter.category = searchParams.category;
+  }
+
+  // 状态筛选
+  if (searchParams.status !== '') {
+    filter.status = searchParams.status;
+  }
+
+  return filter;
+};
+```
+
+## 7. 样式规范
+
+### 7.1 CSS 类名规范
 
 - 使用 BEM 方法论
 - 类名使用 kebab-case
@@ -353,7 +432,7 @@ router.beforeEach((to, from, next) => {
 </style>
 ```
 
-### 6.2 Element Plus 使用
+### 7.2 Element Plus 使用
 
 ```vue
 <!-- ✅ Element Plus 组件规范 -->
@@ -386,9 +465,9 @@ router.beforeEach((to, from, next) => {
 </template>
 ```
 
-## 7. 错误处理规范
+## 8. 错误处理规范
 
-### 7.1 全局错误处理
+### 8.1 全局错误处理
 
 ```javascript
 // main.js
@@ -404,7 +483,7 @@ app.config.errorHandler = (err, instance, info) => {
 };
 ```
 
-### 7.2 异步错误处理
+### 8.2 异步错误处理
 
 ```javascript
 // ✅ 异步操作错误处理
@@ -425,9 +504,9 @@ const asyncOperation = async () => {
 };
 ```
 
-## 8. 性能优化
+## 9. 性能优化
 
-### 8.1 组件懒加载
+### 9.1 组件懒加载
 
 ```javascript
 // ✅ 路由懒加载
@@ -442,7 +521,7 @@ const LazyComponent = defineAsyncComponent(() =>
 );
 ```
 
-### 8.2 虚拟滚动
+### 9.2 虚拟滚动
 
 对于大量数据列表，使用虚拟滚动技术：
 
@@ -457,9 +536,9 @@ const LazyComponent = defineAsyncComponent(() =>
 </template>
 ```
 
-## 9. 测试规范
+## 10. 测试规范
 
-### 9.1 单元测试
+### 10.1 单元测试
 
 ```javascript
 // user.test.js
@@ -481,7 +560,7 @@ describe('UserCard', () => {
 });
 ```
 
-### 9.2 组件测试要点
+### 10.2 组件测试要点
 
 - Props 输入验证
 - 事件触发
@@ -489,9 +568,9 @@ describe('UserCard', () => {
 - 异步行为处理
 - 错误状态处理
 
-## 10. Git 工作流
+## 11. Git 工作流
 
-### 10.1 分支命名
+### 11.1 分支命名
 
 ```
 feature/功能描述          # 新功能开发
@@ -500,7 +579,7 @@ hotfix/紧急修复描述       # 紧急修复
 release/版本号           # 发布分支
 ```
 
-### 10.2 提交信息规范
+### 11.2 提交信息规范
 
 ```
 feat: 新功能
@@ -512,7 +591,7 @@ test: 测试相关
 chore: 构建过程或辅助工具的变动
 ```
 
-### 10.3 提交示例
+### 11.3 提交示例
 
 ```
 feat(user): 添加用户搜索功能
@@ -524,9 +603,9 @@ feat(user): 添加用户搜索功能
 Fixes #123
 ```
 
-## 11. 安全规范
+## 12. 安全规范
 
-### 11.1 XSS 防护
+### 12.1 XSS 防护
 
 ```vue
 <template>
@@ -538,16 +617,16 @@ Fixes #123
 </template>
 ```
 
-### 11.2 认证安全
+### 12.2 认证安全
 
 - 敏感信息不存储在 localStorage 中
 - 定期刷新令牌
 - 实施 CSRF 防护
 - 验证 API 响应
 
-## 12. 部署规范
+## 13. 部署规范
 
-### 12.1 构建配置
+### 13.1 构建配置
 
 ```javascript
 // vite.config.js
@@ -568,7 +647,7 @@ export default defineConfig({
 });
 ```
 
-### 12.2 环境变量
+### 13.2 环境变量
 
 ```bash
 # .env.production

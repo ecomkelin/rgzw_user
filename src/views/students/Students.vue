@@ -31,6 +31,9 @@
       </el-form>
     </el-card>
 
+    <!-- 高级搜索组件 -->
+    <AdvancedSearch @search="handleAdvancedSearch" @reset="handleAdvancedReset" />
+
     <el-card class="table-card">
       <el-table
         :data="students"
@@ -379,12 +382,23 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { studentService } from '../../api/student'
 import { accountService } from '../../api/account'
 import { formatDate, formatGender, formatActiveStatus } from '../../utils/format'
+import AdvancedSearch from '../../components/AdvancedSearch.vue'
 
 // 状态变量
 const students = ref([])
 const loading = ref(false)
 const studentFormRef = ref()
 const availableAccounts = ref([]) // 可用账户选项
+
+// 高级搜索参数
+const advancedFilters = ref({
+  keyword: '',
+  dateRange: [],
+  gender: '',
+  ageRange: [0, 100],
+  status: '',
+  sourceType: ''
+})
 
 // 分页
 const pagination = reactive({
@@ -558,6 +572,7 @@ const fetchStudents = async () => {
     // 构建查询条件
     const filter = {};
 
+    // 基础搜索条件
     // 身份证号搜索
     if (filters.identityNo) {
       filter.identityNo = { $regex: filters.identityNo, $options: 'i' };
@@ -578,6 +593,55 @@ const fetchStudents = async () => {
       filter.isActive = filters.isActive === 'true' || filters.isActive === true;
     }
 
+    // 高级搜索条件
+    // 关键词搜索（在姓名、学校、来源类型中搜索）
+    if (advancedFilters.value.keyword) {
+      filter.$or = [
+        { name: { $regex: advancedFilters.value.keyword, $options: 'i' } },
+        { school: { $regex: advancedFilters.value.keyword, $options: 'i' } },
+        { sourceType: { $regex: advancedFilters.value.keyword, $options: 'i' } }
+      ];
+    }
+
+    // 性别筛选
+    if (advancedFilters.value.gender) {
+      filter.gender = advancedFilters.value.gender;
+    }
+
+    // 年龄范围筛选
+    if (advancedFilters.value.ageRange &&
+        (advancedFilters.value.ageRange[0] > 0 || advancedFilters.value.ageRange[1] < 100)) {
+      // 计算出生日期范围（从年龄推算）
+      const currentYear = new Date().getFullYear();
+      const maxBirthYear = currentYear - advancedFilters.value.ageRange[0]; // 最小年龄对应的最晚出生年份
+      const minBirthYear = currentYear - advancedFilters.value.ageRange[1]; // 最大年龄对应最早出生年份
+
+      if (minBirthYear <= maxBirthYear) { // 确保范围有效
+        filter.birthday = {
+          $gte: `${minBirthYear}-01-01`,
+          $lte: `${maxBirthYear}-12-31`
+        };
+      }
+    }
+
+    // 高级状态筛选
+    if (advancedFilters.value.status !== '' && advancedFilters.value.status !== null && advancedFilters.value.status !== undefined) {
+      filter.isActive = advancedFilters.value.status === 'true' || advancedFilters.value.status === true;
+    }
+
+    // 来源类型筛选
+    if (advancedFilters.value.sourceType) {
+      filter.sourceType = advancedFilters.value.sourceType;
+    }
+
+    // 时间范围筛选（创建时间）
+    if (advancedFilters.value.dateRange && advancedFilters.value.dateRange.length === 2) {
+      filter.createdAt = {
+        $gte: new Date(advancedFilters.value.dateRange[0]),
+        $lte: new Date(advancedFilters.value.dateRange[1])
+      };
+    }
+
     const params = {
       filter: filter,
       options: options
@@ -585,6 +649,7 @@ const fetchStudents = async () => {
 
     console.log('Sending request with params:', params);
     console.log('Filters state:', filters);
+    console.log('Advanced filters state:', advancedFilters.value);
 
     const response = await studentService.getStudents(params)
     console.log('Received response:', response);
@@ -601,6 +666,27 @@ const fetchStudents = async () => {
     loading.value = false
   }
 }
+
+// 高级搜索处理函数
+const handleAdvancedSearch = (searchData) => {
+  Object.assign(advancedFilters.value, searchData);
+  pagination.currentPage = 1; // 重置到第一页
+  fetchStudents();
+};
+
+// 高级搜索重置处理函数
+const handleAdvancedReset = () => {
+  // 重置高级搜索参数
+  advancedFilters.value = {
+    keyword: '',
+    dateRange: [],
+    gender: '',
+    ageRange: [0, 100],
+    status: '',
+    sourceType: ''
+  };
+  fetchStudents();
+};
 
 // 重置筛选条件
 const resetFilters = () => {

@@ -22,7 +22,9 @@ rgzw_user/
 │   └── main.js                # 应用入口
 ├── doc/                       # 项目文档
 │   ├── PAGE_STRUCTURE.md      # 页面结构文档
-│   └── DEVELOPMENT_STANDARD.md # 开发规范文档
+│   ├── DEVELOPMENT_STANDARD.md # 开发规范文档
+│   ├── SEARCH_ENHANCEMENT.md  # 搜索增强文档
+│   └── SEARCH_FEATURE_DETAILS.md # 搜索功能详文档
 ├── CLAUDE.md                  # 开发者文档
 ├── index.html                 # HTML 模板
 ├── package.json               # 项目配置
@@ -140,6 +142,14 @@ yarn preview
 ## 页面结构
 
 请参考 `doc/PAGE_STRUCTURE.md` 了解详细的页面布局和组件结构。
+
+## 搜索增强
+
+请参考 `doc/SEARCH_ENHANCEMENT.md` 了解高级搜索和过滤功能。
+
+## 搜索功能详情
+
+请参考 `doc/SEARCH_FEATURE_DETAILS.md` 了解搜索功能的详细实现和技术细节。
 
 ## 部署说明
 

@@ -37,6 +37,9 @@
       </el-form>
     </el-card>
 
+    <!-- 高级搜索组件 -->
+    <AdvancedSearch @search="handleAdvancedSearch" @reset="handleAdvancedReset" />
+
     <el-card class="table-card">
       <el-table
         :data="users"
@@ -244,6 +247,7 @@ import { userService } from '../../api/user'
 import { orgService } from '../../api/org'  // 导入组织服务
 import { accountService } from '../../api/account'  // 导入账户服务
 import { formatDate, formatActiveStatus } from '../../utils/format'
+import AdvancedSearch from '../../components/AdvancedSearch.vue'
 
 // 状态变量
 const users = ref([])
@@ -251,6 +255,15 @@ const loading = ref(false)
 const userFormRef = ref()
 const orgOptions = ref([])  // 组织选项
 const availableAccounts = ref([]) // 可用账户选项
+
+// 高级搜索参数
+const advancedFilters = ref({
+  keyword: '',
+  dateRange: [],
+  role: '',
+  status: '',
+  org: ''
+})
 
 // 分页
 const pagination = reactive({
@@ -404,6 +417,7 @@ const fetchUsers = async () => {
     // 构建查询条件
     const filter = {};
 
+    // 基础筛选条件
     // 组织筛选
     if (filters.org) {
       filter.Org = filters.org;
@@ -419,6 +433,40 @@ const fetchUsers = async () => {
       filter.isActive = filters.isActive === 'true' || filters.isActive === true;
     }
 
+    // 高级筛选条件
+    // 关键词搜索（在姓名、昵称等字段中搜索）
+    if (advancedFilters.value.keyword) {
+      filter.$or = [
+        { 'Account.name': { $regex: advancedFilters.value.keyword, $options: 'i' } },
+        { nickname: { $regex: advancedFilters.value.keyword, $options: 'i' } },
+        { 'Account.phone': { $regex: advancedFilters.value.keyword, $options: 'i' } },
+        { 'Account.email': { $regex: advancedFilters.value.keyword, $options: 'i' } }
+      ];
+    }
+
+    // 高级角色筛选
+    if (advancedFilters.value.role) {
+      filter.roleTemp = advancedFilters.value.role;
+    }
+
+    // 高级状态筛选
+    if (advancedFilters.value.status !== '' && advancedFilters.value.status !== null && advancedFilters.value.status !== undefined) {
+      filter.isActive = advancedFilters.value.status === 'true' || advancedFilters.value.status === true;
+    }
+
+    // 高级组织筛选
+    if (advancedFilters.value.org) {
+      filter.Org = advancedFilters.value.org;
+    }
+
+    // 时间范围筛选（创建时间）
+    if (advancedFilters.value.dateRange && advancedFilters.value.dateRange.length === 2) {
+      filter.createdAt = {
+        $gte: new Date(advancedFilters.value.dateRange[0]),
+        $lte: new Date(advancedFilters.value.dateRange[1])
+      };
+    }
+
     const params = {
       filter: filter,
       options: {
@@ -432,6 +480,7 @@ const fetchUsers = async () => {
 
     console.log('Sending request with params:', params);
     console.log('Filters state:', filters);
+    console.log('Advanced filters state:', advancedFilters.value);
 
     const response = await userService.getUsers(params)
     console.log('Received response:', response);
@@ -448,6 +497,26 @@ const fetchUsers = async () => {
     loading.value = false
   }
 }
+
+// 高级搜索处理函数
+const handleAdvancedSearch = (searchData) => {
+  Object.assign(advancedFilters.value, searchData);
+  pagination.currentPage = 1; // 重置到第一页
+  fetchUsers();
+};
+
+// 高级搜索重置处理函数
+const handleAdvancedReset = () => {
+  // 重置高级搜索参数
+  advancedFilters.value = {
+    keyword: '',
+    dateRange: [],
+    role: '',
+    status: '',
+    org: ''
+  };
+  fetchUsers();
+};
 
 // 重置筛选条件
 const resetFilters = () => {
