@@ -28,22 +28,25 @@ rgzw_user/
 │   │   └── AdvancedSearch.vue # 高级搜索组件
 │   ├── router/                # 路由配置
 │   ├── stores/                # Pinia 状态管理
-│   │   └── auth.js            # 认证状态管理
+│   │   └── auth.js            # 认证状态管理（持有 currentOrgId）
 │   ├── styles/                # 全局样式
 │   ├── utils/                 # 工具函数
 │   ├── views/                 # 页面组件
 │   │   ├── Layout.vue         # 主布局组件
-│   │   ├── Login.vue          # 登录页面
+│   │   ├── Login.vue          # 登录页面（登录后异步加载 currentUser.Org）
 │   │   ├── Dashboard.vue      # 仪表盘
 │   │   ├── accounts/          # 账户管理页面
 │   │   ├── users/             # 用户管理页面（含高级搜索功能）
 │   │   ├── orgs/              # 组织管理页面
 │   │   ├── rooms/             # 教室管理页面（含批量操作、打印功能）
 │   │   ├── subjects/          # 科目管理页面（含教学大纲、批量操作、打印功能）
-│   │   ├── courses/           # 课程管理页面（含排课规则、批量操作、打印功能）
+│   │   ├── courses/           # 课程管理页面（含排课规则、批量操作、打印功能、Org 范围控制）
 │   │   └── students/          # 学员管理页面（含高级搜索功能）
 │   ├── App.vue                # 根组件
 │   └── main.js                # 应用入口
+├── doc/                       # 项目文档
+│   ├── COURSE_ORG_SCOPING.md  # 课程管理 Org 范围控制（v7.2.1+）
+│   └── ...
 ├── index.html                 # HTML 模板
 ├── package.json               # 项目配置
 ├── vite.config.js             # Vite 配置
@@ -64,7 +67,7 @@ rgzw_user/
 - 组织管理
 - 教室管理（含批量操作、打印功能）
 - 科目管理（含教学大纲、批量操作、打印功能）
-- 课程管理（含排课规则、批量操作、打印功能）
+- 课程管理（含排课规则、批量操作、打印功能、Org 范围控制 —— 详见 `doc/COURSE_ORG_SCOPING.md`）
 - 学员管理（含高级搜索功能）
 - 仪表盘
 

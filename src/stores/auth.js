@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     accessToken: null,
     refreshToken: null,
+    currentOrgId: null, // 当前用户所属机构（currentUser.Org）
     isAuthenticated: false,
     authChecked: false // 标识认证状态是否已检查（用于路由守卫）
   }),
@@ -35,6 +36,7 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     currentUser: (state) => state.user,
     currentAccessToken: (state) => state.accessToken,
+    currentOrgIdValue: (state) => state.currentOrgId,
     isAuthChecked: (state) => state.authChecked
   },
 
@@ -72,6 +74,12 @@ export const useAuthStore = defineStore('auth', {
         } catch (e) {
           console.error('Failed to parse stored user data:', e)
         }
+      }
+
+      // 恢复 currentOrgId（优先于异步校验前使用，避免空白闪烁）
+      const storedOrgId = localStorage.getItem('currentOrgId')
+      if (storedOrgId) {
+        this.currentOrgId = storedOrgId
       }
 
       // 先假设有认证状态（如果存在token）
@@ -129,6 +137,19 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /**
+     * 写入当前用户所属机构 Org（来自 currentUser.Org），并持久化
+     * @param {string} orgId
+     */
+    setCurrentOrgId(orgId) {
+      this.currentOrgId = orgId || null
+      if (orgId) {
+        localStorage.setItem('currentOrgId', orgId)
+      } else {
+        localStorage.removeItem('currentOrgId')
+      }
+    },
+
+    /**
      * 登出：清空 store + localStorage + 通知后端销毁 refresh cookie
      */
     logout() {
@@ -136,12 +157,14 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.accessToken = null
       this.refreshToken = null
+      this.currentOrgId = null
       this.isAuthenticated = false
       this.authChecked = true
 
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
+      localStorage.removeItem('currentOrgId')
 
       // 发送请求清理服务器端的refresh token cookie
       fetch('/api/auth/logout', {

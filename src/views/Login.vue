@@ -52,6 +52,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authService } from '../api/auth'
+import { userService } from '../api/user'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
@@ -75,6 +76,29 @@ const loginRules = {
 const loading = ref(false)
 const loginFormRef = ref()
 
+/**
+ * 登录成功后，通过 account.currentUser 拉取当前 User 详情，
+ * 把 User.Org 写入 store + localStorage，供后续课程管理等页面的 Org 过滤使用。
+ *
+ * 说明：登录接口返回的 account.currentUser 仅为 ObjectId，
+ * 真实的 Org 字段在 User 文档上，因此需要再请求一次 user detail。
+ */
+const loadCurrentUserOrg = async (account) => {
+  const currentUserId = account?.currentUser
+  if (!currentUserId) {
+    // Student 账户没有 currentUser.Org；管理员（isAdmin）通常无 Org 限制
+    return null
+  }
+  try {
+    const res = await userService.getUserById(currentUserId)
+    const userItem = res?.data?.data?.item
+    return userItem?.Org || null
+  } catch (e) {
+    console.error('Failed to load current user Org after login:', e)
+    return null
+  }
+}
+
 const handleLogin = async () => {
   if (!loginFormRef.value) return
 
@@ -89,6 +113,12 @@ const handleLogin = async () => {
           // 存储token和用户信息
           authStore.setTokens(accessToken, null)
           authStore.setUser(account)
+
+          // 异步加载当前用户所属 Org（不阻塞登录跳转）
+          // 拉取失败也允许进入系统，业务页面会再走实时获取兜底
+          loadCurrentUserOrg(account).then((orgId) => {
+            authStore.setCurrentOrgId(orgId)
+          })
 
           ElMessage.success('登录成功')
           router.push('/layout/dashboard')

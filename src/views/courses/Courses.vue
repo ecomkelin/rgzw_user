@@ -436,7 +436,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { courseService } from '../../api/course'
 import { subjectService } from '../../api/subject'
@@ -444,6 +444,7 @@ import { userService } from '../../api/user'
 import { roomService } from '../../api/room'
 import { formatDate, formatActiveStatus } from '../../utils/format'
 import { printTable as printTableUtil } from '../../utils/print'
+import { useAuthStore } from '../../stores/auth'
 
 // 状态变量
 const courses = ref([])
@@ -453,6 +454,32 @@ const roomOptions = ref([]) // 教室选项
 const loading = ref(false)
 const courseFormRef = ref()
 const selectedRows = ref([]) // 选中的行
+
+// 认证 store：用于获取 currentOrgId
+const authStore = useAuthStore()
+
+/**
+ * 当前用户所属 Org。
+ * - 优先使用 store 缓存（登录后已写入 localStorage）
+ * - 缺失时实时回拉一次 /user/detail/:currentUserId，写回 store
+ * - 仍拿不到则返回 null：管理员可能无 Org 限制；其他用户必须拒绝新增
+ */
+const currentOrgId = computed(() => authStore.currentOrgId || null)
+
+const ensureCurrentOrgId = async () => {
+  if (authStore.currentOrgId) return authStore.currentOrgId
+  const currentUserId = authStore.user?.currentUser
+  if (!currentUserId) return null
+  try {
+    const res = await userService.getUserById(currentUserId)
+    const orgId = res?.data?.data?.item?.Org || null
+    authStore.setCurrentOrgId(orgId)
+    return orgId
+  } catch (e) {
+    console.error('Failed to fetch current user Org:', e)
+    return null
+  }
+}
 
 // 分页
 const pagination = reactive({
@@ -586,8 +613,9 @@ const formatPrice = (priceInCents) => {
 // 获取老师名称
 const getTeacherName = (teacher) => {
   if (!teacher) return '-'
-  if (typeof teacher === 'object' && teacher.Account) {
-    return teacher.Account.name || teacher.nickname || '-'
+  // populate 后是对象，包含 nickname 等字段
+  if (typeof teacher === 'object') {
+    return teacher.nickname || teacher.Account?.name || '-'
   }
   // 简化版本：直接显示 ID
   return '老师ID:' + (teacher._id || teacher).substring(0, 8) + '...'
@@ -596,17 +624,21 @@ const getTeacherName = (teacher) => {
 // 获取教室名称
 const getRoomName = (room) => {
   if (!room) return '-'
-  if (typeof room === 'object' && room.name) {
-    return room.name
+  // populate 后是对象，包含 name 字段
+  if (typeof room === 'object') {
+    return room.name || '-'
   }
   return '教室ID:' + (room._id || room).substring(0, 8) + '...'
 }
 
-// 获取科目选项
+// 获取科目选项（仅当前 Org 下的科目）
 const fetchSubjects = async () => {
   try {
+    const orgId = currentOrgId.value
+    const filter = { isActive: true }
+    if (orgId) filter.Org = orgId
     const response = await subjectService.getSubjects({
-      filter: { isActive: true },
+      filter,
       options: {
         limit: 1000,
         sortObj: { sort: -1 }
@@ -620,11 +652,14 @@ const fetchSubjects = async () => {
   }
 }
 
-// 获取用户选项（作为老师候选）
+// 获取用户选项（作为老师候选，仅当前 Org 下的用户）
 const fetchUsers = async () => {
   try {
+    const orgId = currentOrgId.value
+    const filter = { isActive: true }
+    if (orgId) filter.Org = orgId
     const response = await userService.getUsers({
-      filter: { isActive: true },
+      filter,
       options: {
         limit: 1000,
         sortObj: { sort: -1 }
@@ -638,11 +673,14 @@ const fetchUsers = async () => {
   }
 }
 
-// 获取教室选项
+// 获取教室选项（仅当前 Org 下的教室）
 const fetchRooms = async () => {
   try {
+    const orgId = currentOrgId.value
+    const filter = { isActive: true }
+    if (orgId) filter.Org = orgId
     const response = await roomService.getRooms({
-      filter: { isActive: true },
+      filter,
       options: {
         limit: 1000,
         sortObj: { sort: -1 }
@@ -699,7 +737,10 @@ const fetchCourses = async () => {
       limit: pagination.pageSize,
       sortObj: { sort: -1, createdAt: -1 },
       populate: [
-        { path: 'Subject', select: 'name category' }
+        { path: 'Subject', select: 'name category' },
+        { path: 'mainTeacher', select: 'nickname roleTemp' },
+        { path: 'assistantTeacher', select: 'nickname roleTemp' },
+        { path: 'defaultRoom', select: 'name capacity location' }
       ]
     }
 
@@ -763,7 +804,16 @@ const handleSelectionChange = (selection) => {
 }
 
 // 打开创建对话框
-const openCreateDialog = () => {
+const openCreateDialog = async () => {
+  // 创建前确保拿到当前用户的 Org
+  const orgId = await ensureCurrentOrgId()
+  if (!orgId && !authStore.user?.isAdmin) {
+    ElMessage.error('无法识别当前用户所属机构（Org），无法创建课程')
+    return
+  }
+  // 重新拉取当前 Org 下的可选数据，保证下拉与本次创建一致
+  await Promise.all([fetchSubjects(), fetchUsers(), fetchRooms()])
+
   dialog.mode = 'create'
   dialog.visible = true
   dialog.activeTab = 'basic'
@@ -915,6 +965,13 @@ const saveCourse = async () => {
       price: dialog.form.price,
       status: dialog.form.status,
       isActive: dialog.form.isActive
+    }
+
+    // 课程的 Org 取自当前登录用户（payload.currentUser.Org）
+    // 后端 Course.model 校验创建时会再覆盖一次，这里携带以便审计/前端一致性
+    const orgId = authStore.currentOrgId
+    if (orgId) {
+      courseData.Org = orgId
     }
 
     // 可选字段
@@ -1118,6 +1175,8 @@ const printTable = (data) => {
 }
 
 onMounted(async () => {
+  // 进入页面时先确保拿到 currentOrgId（缓存缺失时回拉一次 user detail）
+  await ensureCurrentOrgId()
   await Promise.all([fetchSubjects(), fetchUsers(), fetchRooms()])
   fetchCourses()
 })

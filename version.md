@@ -1,5 +1,14 @@
 # 版本更新日志
 
+## v7.2.1
+- 课程列表的主讲老师 / 默认教室等关联字段通过 `populate` 展示真实姓名（nickname / room.name），不再显示 ID
+- 课程管理新增 Org 范围控制：
+  - 登录后异步拉取 `account.currentUser.Org`，持久化到 `authStore.currentOrgId` + `localStorage('currentOrgId')`
+  - 课程新增页的下拉（所属科目 / 主讲老师 / 助教 / 默认教室）按当前 Org 过滤
+  - 创建课程时携带 `Org`，由后端 `payload.currentUser.Org` 兜底覆盖
+  - 拿不到 Org 时非管理员直接拒绝新增
+- 详见 `doc/COURSE_ORG_SCOPING.md`
+
 ## v7.2.0
 - 增加了 课程 course 的管理页面
 

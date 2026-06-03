@@ -69,6 +69,7 @@
 - **组件**: `courses/Courses.vue`
 - **功能**: 管理课程信息（含排课规则、批量操作、打印等）
 - **权限**: 已认证用户
+- **备注**: 列表中「主讲老师 / 默认教室」通过 `populate` 展示真实姓名；新增课程时下拉按当前 Org 过滤，详见 [COURSE_ORG_SCOPING.md](./COURSE_ORG_SCOPING.md)
 
 #### 2.8 学员管理页面
 - **路径**: `/layout/students`
@@ -222,6 +223,7 @@
 - `user`: 当前用户信息
 - `accessToken`: 访问令牌
 - `refreshToken`: 刷新令牌
+- `currentOrgId`: 当前登录用户所属机构（来自 `account.currentUser.Org`），持久化到 `localStorage('currentOrgId')`
 - `isAuthenticated`: 认证状态
 - `authChecked`: 认证检查状态
 
@@ -229,8 +231,11 @@
 - `initializeAuth()`: 初始化认证状态
 - `setTokens()`: 设置令牌
 - `setUser()`: 设置用户信息
+- `setCurrentOrgId(orgId)`: 写入当前用户所属机构（登录后由 `Login.vue` 异步拉取并写入）
 - `logout()`: 登出操作
 - `checkAuthStatus()`: 检查认证状态
+
+> Org 范围控制相关改动与课程管理的联动见 [COURSE_ORG_SCOPING.md](./COURSE_ORG_SCOPING.md)。
 
 ## API 接口结构
 
