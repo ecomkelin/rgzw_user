@@ -39,6 +39,7 @@
             <span>学校管理</span>
           </template>
           <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
+          <el-menu-item index="/layout/courses">课程管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
@@ -98,6 +99,7 @@
             <span>学校管理</span>
           </template>
           <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
+          <el-menu-item index="/layout/courses">课程管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
@@ -197,6 +199,7 @@ const pageTitle = computed(() => {
     '/layout/orgs': '组织管理',
     '/layout/rooms': '教室管理',
     '/layout/subjects': '科目管理',
+    '/layout/courses': '课程管理',
     '/layout/students': '学生列表',
     '/layout/analytics': '数据分析'
   }

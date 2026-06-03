@@ -64,7 +64,13 @@
 - **功能**: 管理科目信息（含教学大纲、批量操作、打印等）
 - **权限**: 已认证用户
 
-#### 2.7 学员管理页面
+#### 2.7 课程管理页面
+- **路径**: `/layout/courses`
+- **组件**: `courses/Courses.vue`
+- **功能**: 管理课程信息（含排课规则、批量操作、打印等）
+- **权限**: 已认证用户
+
+#### 2.8 学员管理页面
 - **路径**: `/layout/students`
 - **组件**: `students/Students.vue`
 - **功能**: 管理学员信息（含高级搜索功能）
@@ -134,6 +140,7 @@
 - 组织管理
 - 教室管理
 - 科目管理
+- 课程管理
 - 学员管理
 - 仪表盘
 
@@ -257,6 +264,12 @@
 - `POST /api/subject/detail/:id` - 获取科目详情
 - `POST /api/subject/add/` - 添加科目
 - `POST /api/subject/edit/:id` - 编辑科目
+
+### 课程相关
+- `POST /api/course/list/` - 获取课程列表
+- `POST /api/course/detail/:id` - 获取课程详情
+- `POST /api/course/add/` - 添加课程
+- `POST /api/course/edit/:id` - 编辑课程
 
 ### 其他管理接口
 - `POST /api/account/` - 账户相关
