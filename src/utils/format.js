@@ -22,6 +22,28 @@ export const formatDate = (dateString) => {
 }
 
 /**
+ * 把 ISO/时间戳格式化为 YYYY-MM-DD（仅日期，无时间）
+ *
+ * 适用场景：Element Plus `<el-date-picker value-format="YYYY-MM-DD">` 初始化时的回填，
+ * 以及后端 `isDate()` 校验通过的标准 ISO 日期。
+ *
+ * 注意：不能直接对 `new Date()` 取 `toISOString().slice(0, 10)` —— 那会按 UTC 切，
+ *       在东八区容易出现"差一天"的 bug。这里使用本地时区逐位补零。
+ *
+ * @param {string|number|Date|null|undefined} dateString
+ * @returns {string} YYYY-MM-DD；空值返回空字符串
+ */
+export const formatDateOnly = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
  * 性别枚举 -> 中文
  * @param {'Male'|'Female'|string|null|undefined} gender
  * @returns {string}

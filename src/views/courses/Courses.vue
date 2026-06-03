@@ -197,20 +197,29 @@
     >
       <el-form
         :model="dialog.form"
-        :rules="dialog.rules"
+        :rules="formRules"
         ref="courseFormRef"
         label-width="120px"
       >
         <el-tabs v-model="dialog.activeTab">
           <el-tab-pane label="基本信息" name="basic">
             <el-form-item label="班级名称" prop="name">
-              <el-input v-model="dialog.form.name" placeholder="如：2026春Python初级班"></el-input>
+              <el-input
+                v-model="dialog.form.name"
+                :disabled="isFieldLocked('name')"
+                placeholder="如：2026春Python初级班">
+                <template #append v-if="isFieldLocked('name')">
+                  <el-tooltip :content="lockedHint('name')" placement="top">
+                    <el-icon><Lock /></el-icon>
+                  </el-tooltip>
+                </template>
+              </el-input>
             </el-form-item>
 
             <el-form-item label="所属科目" prop="Subject">
               <el-select
                 v-model="dialog.form.Subject"
-                :disabled="dialog.mode === 'edit'"
+                :disabled="isFieldLocked('Subject')"
                 placeholder="请选择科目"
                 style="width: 100%"
                 filterable
@@ -222,11 +231,15 @@
                   :value="subject._id">
                 </el-option>
               </el-select>
+              <div v-if="isFieldLocked('Subject')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('Subject') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="主讲老师" prop="mainTeacher">
               <el-select
                 v-model="dialog.form.mainTeacher"
+                :disabled="isFieldLocked('mainTeacher')"
                 placeholder="请选择主讲老师"
                 style="width: 100%"
                 filterable
@@ -238,11 +251,15 @@
                   :value="user._id">
                 </el-option>
               </el-select>
+              <div v-if="isFieldLocked('mainTeacher')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('mainTeacher') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="助教" prop="assistantTeacher">
               <el-select
                 v-model="dialog.form.assistantTeacher"
+                :disabled="isFieldLocked('assistantTeacher')"
                 placeholder="请选择助教（可选）"
                 style="width: 100%"
                 clearable
@@ -255,11 +272,15 @@
                   :value="user._id">
                 </el-option>
               </el-select>
+              <div v-if="isFieldLocked('assistantTeacher')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('assistantTeacher') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="默认教室" prop="defaultRoom">
               <el-select
                 v-model="dialog.form.defaultRoom"
+                :disabled="isFieldLocked('defaultRoom')"
                 placeholder="请选择默认教室"
                 style="width: 100%"
                 filterable
@@ -271,59 +292,93 @@
                   :value="room._id">
                 </el-option>
               </el-select>
+              <div v-if="isFieldLocked('defaultRoom')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('defaultRoom') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="开班日期" prop="startDate">
               <el-date-picker
                 v-model="dialog.form.startDate"
+                :disabled="isFieldLocked('startDate')"
                 type="date"
                 placeholder="选择开班日期"
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 style="width: 100%"
               ></el-date-picker>
+              <div v-if="isFieldLocked('startDate')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('startDate') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="结课日期" prop="endDate">
               <el-date-picker
                 v-model="dialog.form.endDate"
+                :disabled="isFieldLocked('endDate')"
                 type="date"
                 placeholder="选择预计结课日期"
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 style="width: 100%"
               ></el-date-picker>
+              <div v-if="isFieldLocked('endDate')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('endDate') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="对外发布日" prop="publishDate">
               <el-date-picker
                 v-model="dialog.form.publishDate"
+                :disabled="isFieldLocked('publishDate')"
                 type="date"
                 placeholder="选择对外发布/招生日期"
                 format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
                 style="width: 100%"
               ></el-date-picker>
+              <div v-if="isFieldLocked('publishDate')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('publishDate') }}
+              </div>
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane label="排课信息" name="schedule">
             <el-form-item label="总课次" prop="totalSessions">
-              <el-input-number v-model="dialog.form.totalSessions" :min="0" style="width: 100%;"></el-input-number>
+              <el-input-number
+                v-model="dialog.form.totalSessions"
+                :disabled="isFieldLocked('totalSessions')"
+                :min="0"
+                style="width: 100%;">
+              </el-input-number>
+              <div v-if="isFieldLocked('totalSessions')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('totalSessions') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="排课频率" prop="frequency">
-              <el-select v-model="dialog.form.frequency" placeholder="请选择排课频率" style="width: 100%">
+              <el-select
+                v-model="dialog.form.frequency"
+                :disabled="isFieldLocked('frequency')"
+                placeholder="请选择排课频率"
+                style="width: 100%">
                 <el-option label="每周" value="weekly"></el-option>
                 <el-option label="每日（周一到周五）" value="daily"></el-option>
                 <el-option label="自定义" value="custom"></el-option>
               </el-select>
+              <div v-if="isFieldLocked('frequency')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('frequency') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="排课规则">
               <div class="schedule-rules-list">
                 <div v-for="(rule, index) in dialog.form.scheduleRules" :key="index" class="schedule-rule-item">
-                  <el-select v-model="rule.dayOfWeek" placeholder="星期" style="width: 120px; margin-right: 10px;">
+                  <el-select
+                    v-model="rule.dayOfWeek"
+                    :disabled="isFieldLocked('scheduleRules')"
+                    placeholder="星期"
+                    style="width: 120px; margin-right: 10px;">
                     <el-option label="周日" :value="0"></el-option>
                     <el-option label="周一" :value="1"></el-option>
                     <el-option label="周二" :value="2"></el-option>
@@ -334,6 +389,7 @@
                   </el-select>
                   <el-time-picker
                     v-model="rule.startTime"
+                    :disabled="isFieldLocked('scheduleRules')"
                     placeholder="开始时间"
                     format="HH:mm"
                     value-format="HH:mm"
@@ -341,29 +397,57 @@
                   ></el-time-picker>
                   <el-time-picker
                     v-model="rule.endTime"
+                    :disabled="isFieldLocked('scheduleRules')"
                     placeholder="结束时间"
                     format="HH:mm"
                     value-format="HH:mm"
                     style="width: 130px; margin-right: 10px;"
                   ></el-time-picker>
-                  <el-button type="danger" @click="removeScheduleRule(index)" size="small">删除</el-button>
+                  <el-button
+                    type="danger"
+                    @click="removeScheduleRule(index)"
+                    :disabled="isFieldLocked('scheduleRules')"
+                    size="small">删除</el-button>
                 </div>
-                <el-button type="primary" @click="addScheduleRule" size="small" plain>
+                <el-button
+                  type="primary"
+                  @click="addScheduleRule"
+                  :disabled="isFieldLocked('scheduleRules')"
+                  size="small"
+                  plain>
                   + 添加排课规则
                 </el-button>
+              </div>
+              <div v-if="isFieldLocked('scheduleRules')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('scheduleRules') }}
               </div>
             </el-form-item>
           </el-tab-pane>
 
           <el-tab-pane label="招生信息" name="recruit">
             <el-form-item label="最大学生数" prop="maxStudents">
-              <el-input-number v-model="dialog.form.maxStudents" :min="0" style="width: 100%;"></el-input-number>
+              <el-input-number
+                v-model="dialog.form.maxStudents"
+                :disabled="isFieldLocked('maxStudents')"
+                :min="0"
+                style="width: 100%;">
+              </el-input-number>
+              <div v-if="isFieldLocked('maxStudents')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('maxStudents') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="报名价格" prop="price">
-              <el-input-number v-model="dialog.form.price" :min="0" style="width: 100%;">
+              <el-input-number
+                v-model="dialog.form.price"
+                :disabled="isFieldLocked('price')"
+                :min="0"
+                style="width: 100%;">
                 <template #append>分</template>
               </el-input-number>
+              <div v-if="isFieldLocked('price')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('price') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="课程状态" prop="status">
@@ -374,18 +458,34 @@
                 <el-option label="已结束" value="finished"></el-option>
                 <el-option label="已取消" value="cancelled"></el-option>
               </el-select>
+              <div class="field-locked-hint">
+                <el-icon><InfoFilled /></el-icon>
+                课程状态决定其他字段是否可修改；切换状态后下方字段的锁定会随之变化
+              </div>
             </el-form-item>
 
             <el-form-item label="是否激活" prop="isActive">
               <el-switch
                 v-model="dialog.form.isActive"
+                :disabled="isFieldLocked('isActive')"
                 active-text="激活"
                 inactive-text="未激活"
               ></el-switch>
+              <div v-if="isFieldLocked('isActive')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('isActive') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="排序" prop="sort">
-              <el-input-number v-model="dialog.form.sort" :min="0" style="width: 100%;"></el-input-number>
+              <el-input-number
+                v-model="dialog.form.sort"
+                :disabled="isFieldLocked('sort')"
+                :min="0"
+                style="width: 100%;">
+              </el-input-number>
+              <div v-if="isFieldLocked('sort')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('sort') }}
+              </div>
             </el-form-item>
           </el-tab-pane>
 
@@ -393,35 +493,64 @@
             <el-form-item label="本期特色" prop="features">
               <el-input
                 v-model="dialog.form.features"
+                :disabled="isFieldLocked('features')"
                 type="textarea"
                 :rows="3"
                 placeholder="本期特色（如：本期由特级老师授课，赠送教材等）"
                 maxlength="500"
                 show-word-limit
               ></el-input>
+              <div v-if="isFieldLocked('features')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('features') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="详细描述" prop="description">
               <el-input
                 v-model="dialog.form.description"
+                :disabled="isFieldLocked('description')"
                 type="textarea"
                 :rows="5"
                 placeholder="详细描述（课程内容、目标等）"
                 maxlength="2000"
                 show-word-limit
               ></el-input>
+              <div v-if="isFieldLocked('description')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('description') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="海报URL" prop="posterUrl">
-              <el-input v-model="dialog.form.posterUrl" placeholder="课程海报图片URL"></el-input>
+              <el-input
+                v-model="dialog.form.posterUrl"
+                :disabled="isFieldLocked('posterUrl')"
+                placeholder="课程海报图片URL">
+              </el-input>
+              <div v-if="isFieldLocked('posterUrl')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('posterUrl') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="视频URL" prop="videoUrl">
-              <el-input v-model="dialog.form.videoUrl" placeholder="整体课程视频URL"></el-input>
+              <el-input
+                v-model="dialog.form.videoUrl"
+                :disabled="isFieldLocked('videoUrl')"
+                placeholder="整体课程视频URL">
+              </el-input>
+              <div v-if="isFieldLocked('videoUrl')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('videoUrl') }}
+              </div>
             </el-form-item>
 
             <el-form-item label="精彩集锦URL" prop="highlightVideoUrl">
-              <el-input v-model="dialog.form.highlightVideoUrl" placeholder="精彩集锦视频URL"></el-input>
+              <el-input
+                v-model="dialog.form.highlightVideoUrl"
+                :disabled="isFieldLocked('highlightVideoUrl')"
+                placeholder="精彩集锦视频URL">
+              </el-input>
+              <div v-if="isFieldLocked('highlightVideoUrl')" class="field-locked-hint">
+                <el-icon><Lock /></el-icon> {{ lockedHint('highlightVideoUrl') }}
+              </div>
             </el-form-item>
           </el-tab-pane>
         </el-tabs>
@@ -436,13 +565,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Lock, InfoFilled } from '@element-plus/icons-vue'
 import { courseService } from '../../api/course'
 import { subjectService } from '../../api/subject'
 import { userService } from '../../api/user'
 import { roomService } from '../../api/room'
-import { formatDate, formatActiveStatus } from '../../utils/format'
+import { formatDate, formatActiveStatus, formatDateOnly } from '../../utils/format'
 import { printTable as printTableUtil } from '../../utils/print'
 import { useAuthStore } from '../../stores/auth'
 
@@ -563,6 +693,96 @@ const dialog = reactive({
       { required: true, message: '请设置激活状态', trigger: 'change' }
     ]
   }
+})
+
+// ==================== 字段锁定逻辑 ====================
+//
+// 锁定规则源自后端：
+//   1) `Course.model.js` 中标注 `immutable: true` 的字段，编辑时永远不可改
+//      （Subject / name / totalSessions / price / Org / createdBy）
+//   2) `Course.dao.js` 的 `filterUpdatableFields` 按 status 进一步限制：
+//      - 'enrolling' / 'ongoing'：除状态、内容包装、排课外，主要信息（含 mainTeacher / startDate / maxStudents）不可改
+//      - 'finished' / 'cancelled'：除 status 外全部不可改
+//
+// 前端要做的两件事：
+//   a) 模板里 `:disabled="isFieldLocked('xxx')"`，让用户看到字段不可改
+//   b) saveCourse 中过滤掉 locked 字段再提交，避免后端抛 "字段不可修改"
+const ALWAYS_IMMUTABLE_FIELDS = ['Subject', 'name', 'totalSessions', 'price']
+// 'enrolling' / 'ongoing' 额外锁定的字段（叠加到 ALWAYS_IMMUTABLE_FIELDS）
+const ENROLLING_LOCKED_EXTRA = ['mainTeacher', 'startDate', 'maxStudents']
+// 'finished' / 'cancelled' 锁定的字段（除 status 外几乎全部）
+const FINISHED_LOCKED_EXTRA = [
+  ...ENROLLING_LOCKED_EXTRA,
+  'assistantTeacher', 'endDate', 'frequency', 'scheduleRules',
+  'defaultRoom', 'publishDate',
+  'features', 'description', 'posterUrl', 'videoUrl', 'highlightVideoUrl',
+  'isActive', 'sort'
+]
+
+/**
+ * 当前状态下被锁定的字段集合（仅 edit 模式生效）
+ */
+const lockedFieldSet = computed(() => {
+  // 新建模式下所有字段都可编辑
+  if (dialog.mode !== 'edit') return new Set()
+  const status = dialog.form.status
+  if (status === 'enrolling' || status === 'ongoing') {
+    return new Set([...ALWAYS_IMMUTABLE_FIELDS, ...ENROLLING_LOCKED_EXTRA])
+  }
+  if (status === 'finished' || status === 'cancelled') {
+    return new Set([...ALWAYS_IMMUTABLE_FIELDS, ...FINISHED_LOCKED_EXTRA])
+  }
+  // draft：只锁 model 中 immutable: true 的字段
+  return new Set(ALWAYS_IMMUTABLE_FIELDS)
+})
+
+/** 判断某个字段在当前模式下是否被锁定 */
+const isFieldLocked = (field) => lockedFieldSet.value.has(field)
+
+/** 锁定原因文案（用于 el-tooltip 等） */
+const lockedHint = (field) => {
+  if (!isFieldLocked(field)) return ''
+  const status = dialog.form.status
+  const reasonByField = {
+    Subject: '所属科目一经创建不可修改（需要变更请复制新建课程）',
+    name: '班级名称在创建后不可修改',
+    totalSessions: '总课次在创建后不可修改',
+    price: '价格（含优惠）一经创建不可修改',
+    mainTeacher: '课程处于「招生中/进行中/已结束/已取消」时，主讲老师不可变更',
+    startDate: '课程处于「招生中/进行中/已结束/已取消」时，开班日期不可变更',
+    maxStudents: '课程处于「招生中/进行中/已结束/已取消」时，最大学生数不可变更',
+    status: ''
+  }
+  if (reasonByField[field]) return reasonByField[field]
+  if (status === 'finished' || status === 'cancelled') {
+    return '课程已结束/已取消，除状态外其他字段均不可修改'
+  }
+  return '当前状态下该字段不可修改'
+}
+
+/**
+ * 动态表单规则
+ *
+ * 关键：被锁定的字段在编辑模式下应当「跳过 required 校验」。
+ * 否则 `:disabled` 的 el-input 在保存时仍会触发 required 校验，
+ * 但由于 disabled 输入不更新 v-model，校验看到的值是空，导致「name 不能为空」之类的误报。
+ *
+ * 同时也要去掉那些在当前 status 下后端根本不允许更新的字段的「必填」校验，
+ * 避免用户被规则引导填一个不会被保存的值。
+ */
+const formRules = computed(() => {
+  const locked = lockedFieldSet.value
+  // 浅拷贝 dialog.rules，并按锁定情况去掉对应字段的 required 规则
+  const result = {}
+  for (const [field, rules] of Object.entries(dialog.rules)) {
+    if (locked.has(field)) {
+      // 锁定字段：仅保留非 required 的规则（保留也不会报错，但去掉更干净）
+      result[field] = rules.filter((r) => r && r.required !== true)
+    } else {
+      result[field] = rules
+    }
+  }
+  return result
 })
 
 // 课程状态格式化
@@ -862,9 +1082,11 @@ const openEditDialog = (row) => {
     mainTeacher: row.mainTeacher?._id || row.mainTeacher || '',
     assistantTeacher: row.assistantTeacher?._id || row.assistantTeacher || '',
     defaultRoom: row.defaultRoom?._id || row.defaultRoom || '',
-    startDate: row.startDate ? formatDate(row.startDate) : '',
-    endDate: row.endDate ? formatDate(row.endDate) : '',
-    publishDate: row.publishDate ? formatDate(row.publishDate) : '',
+    // ⚠️ 必须用 YYYY-MM-DD 格式回填，否则 el-date-picker (value-format="YYYY-MM-DD")
+    // 解析不开，提交时会被后端 isDate() 拒绝 ("startDate 必须是合法的日期")
+    startDate: formatDateOnly(row.startDate),
+    endDate: formatDateOnly(row.endDate),
+    publishDate: formatDateOnly(row.publishDate),
     totalSessions: row.totalSessions || 0,
     frequency: row.frequency || 'weekly',
     scheduleRules: row.scheduleRules ? JSON.parse(JSON.stringify(row.scheduleRules)) : [],
@@ -879,11 +1101,13 @@ const openEditDialog = (row) => {
     videoUrl: row.videoUrl || '',
     highlightVideoUrl: row.highlightVideoUrl || ''
   })
-  setTimeout(() => {
-    if (courseFormRef.value) {
+  // 用 nextTick 等待表单 ref 挂载 + 数据回填完成后再清除校验，
+  // 避免「表单首次渲染时 v-model 还没值 → required 报错 → 后续虽然填了但错误粘住」
+  nextTick(() => {
+    if (courseFormRef.value && courseFormRef.value.clearValidate) {
       courseFormRef.value.clearValidate()
     }
-  }, 0)
+  })
 }
 
 // 查看课程详情
@@ -950,73 +1174,68 @@ const saveCourse = async () => {
   }
 
   try {
+    // 先清掉可能残留的校验错误（例如表单首次渲染时 disabled 字段触发的 required 错误）
+    if (courseFormRef.value && courseFormRef.value.clearValidate) {
+      courseFormRef.value.clearValidate()
+    }
     await courseFormRef.value.validate()
     dialog.loading = true
 
-    // 构建请求数据
-    const courseData = {
-      name: dialog.form.name,
-      Subject: dialog.form.Subject,
-      mainTeacher: dialog.form.mainTeacher,
-      defaultRoom: dialog.form.defaultRoom,
-      totalSessions: dialog.form.totalSessions,
-      frequency: dialog.form.frequency,
-      maxStudents: dialog.form.maxStudents,
-      price: dialog.form.price,
-      status: dialog.form.status,
-      isActive: dialog.form.isActive
+    // 构建请求数据：只在「当前模式下未被锁定」时携带对应字段。
+    // 这样从源头就保证被锁定的字段（特别是 name 等 model 中 immutable: true 的字段）
+    // 绝对不会出现在请求体里，避免后端抛 "name 不能为空" / "字段不可修改" 之类的错误。
+    const isEdit = dialog.mode === 'edit'
+    const status = dialog.form.status
+
+    const isLocked = (field) => {
+      if (!isEdit) return false
+      if (ALWAYS_IMMUTABLE_FIELDS.includes(field)) return true
+      if ((status === 'enrolling' || status === 'ongoing') && ENROLLING_LOCKED_EXTRA.includes(field)) return true
+      if ((status === 'finished' || status === 'cancelled') && FINISHED_LOCKED_EXTRA.includes(field)) return true
+      return false
     }
+
+    // 辅助：仅当「非锁定 + 有值」时写入
+    const set = (field, value) => {
+      if (isLocked(field)) return
+      if (value === undefined || value === null || value === '') return
+      courseData[field] = value
+    }
+
+    const courseData = {}
+
+    // === 必填/重要字段 ===
+    set('name', dialog.form.name)
+    set('Subject', dialog.form.Subject)
+    set('mainTeacher', dialog.form.mainTeacher)
+    set('defaultRoom', dialog.form.defaultRoom)
+    set('totalSessions', dialog.form.totalSessions)
+    set('frequency', dialog.form.frequency)
+    set('maxStudents', dialog.form.maxStudents)
+    set('price', dialog.form.price)
+    set('status', dialog.form.status)
+    set('isActive', dialog.form.isActive)
+    set('sort', dialog.form.sort)
+
+    // === 可选字段 ===
+    set('assistantTeacher', dialog.form.assistantTeacher)
+    set('startDate', dialog.form.startDate)
+    set('endDate', dialog.form.endDate)
+    set('publishDate', dialog.form.publishDate)
+    if (!isLocked('scheduleRules') && dialog.form.scheduleRules && dialog.form.scheduleRules.length > 0) {
+      courseData.scheduleRules = dialog.form.scheduleRules
+    }
+    set('features', (dialog.form.features || '').trim())
+    set('description', (dialog.form.description || '').trim())
+    set('posterUrl', (dialog.form.posterUrl || '').trim())
+    set('videoUrl', (dialog.form.videoUrl || '').trim())
+    set('highlightVideoUrl', (dialog.form.highlightVideoUrl || '').trim())
 
     // 课程的 Org 取自当前登录用户（payload.currentUser.Org）
     // 后端 Course.model 校验创建时会再覆盖一次，这里携带以便审计/前端一致性
     const orgId = authStore.currentOrgId
     if (orgId) {
       courseData.Org = orgId
-    }
-
-    // 可选字段
-    if (dialog.form.assistantTeacher) {
-      courseData.assistantTeacher = dialog.form.assistantTeacher
-    }
-
-    if (dialog.form.startDate) {
-      courseData.startDate = dialog.form.startDate
-    }
-
-    if (dialog.form.endDate) {
-      courseData.endDate = dialog.form.endDate
-    }
-
-    if (dialog.form.publishDate) {
-      courseData.publishDate = dialog.form.publishDate
-    }
-
-    if (dialog.form.scheduleRules && dialog.form.scheduleRules.length > 0) {
-      courseData.scheduleRules = dialog.form.scheduleRules
-    }
-
-    if (dialog.form.features && dialog.form.features.trim()) {
-      courseData.features = dialog.form.features
-    }
-
-    if (dialog.form.description && dialog.form.description.trim()) {
-      courseData.description = dialog.form.description
-    }
-
-    if (dialog.form.posterUrl && dialog.form.posterUrl.trim()) {
-      courseData.posterUrl = dialog.form.posterUrl
-    }
-
-    if (dialog.form.videoUrl && dialog.form.videoUrl.trim()) {
-      courseData.videoUrl = dialog.form.videoUrl
-    }
-
-    if (dialog.form.highlightVideoUrl && dialog.form.highlightVideoUrl.trim()) {
-      courseData.highlightVideoUrl = dialog.form.highlightVideoUrl
-    }
-
-    if (dialog.form.sort !== undefined && dialog.form.sort !== null) {
-      courseData.sort = dialog.form.sort
     }
 
     let response
@@ -1270,5 +1489,19 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.field-locked-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #e6a23c;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-locked-hint .el-icon {
+  font-size: 12px;
 }
 </style>
