@@ -29,6 +29,10 @@
           <el-menu-item index="/layout/users">用户管理</el-menu-item>
           <el-menu-item index="/layout/orgs">组织管理</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="/layout/rooms">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>教室管理</span>
+        </el-menu-item>
         <el-sub-menu index="/school">
           <template #title>
             <el-icon><School /></el-icon>
@@ -83,6 +87,10 @@
           <el-menu-item index="/layout/users">用户管理</el-menu-item>
           <el-menu-item index="/layout/orgs">组织管理</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="/layout/rooms">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>教室管理</span>
+        </el-menu-item>
         <el-sub-menu index="/school">
           <template #title>
             <el-icon><School /></el-icon>
@@ -161,7 +169,8 @@ import {
   DataAnalysis,
   ArrowDown,
   UserFilled,
-  Menu
+  Menu,
+  OfficeBuilding
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { resetTour, startTour } from '../composables/useTour'
@@ -183,6 +192,7 @@ const pageTitle = computed(() => {
     '/layout/accounts': '账户列表',
     '/layout/users': '用户管理',
     '/layout/orgs': '组织管理',
+    '/layout/rooms': '教室管理',
     '/layout/students': '学生列表',
     '/layout/analytics': '数据分析'
   }

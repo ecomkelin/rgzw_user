@@ -52,7 +52,13 @@
 - **功能**: 管理组织架构
 - **权限**: 已认证用户
 
-#### 2.5 学员管理页面
+#### 2.5 教室管理页面
+- **路径**: `/layout/rooms`
+- **组件**: `rooms/Rooms.vue`
+- **功能**: 管理教室信息（增删改查、批量操作、打印等）
+- **权限**: 已认证用户
+
+#### 2.6 学员管理页面
 - **路径**: `/layout/students`
 - **组件**: `students/Students.vue`
 - **功能**: 管理学员信息（含高级搜索功能）
@@ -120,6 +126,7 @@
 - 账户管理
 - 用户管理
 - 组织管理
+- 教室管理
 - 学员管理
 - 仪表盘
 
@@ -230,6 +237,13 @@
 - `POST /api/student/detail/:id` - 获取学员详情
 - `POST /api/student/add/` - 添加学员
 - `POST /api/student/edit/:id` - 编辑学员
+
+### 教室相关
+- `POST /api/room/list/` - 获取教室列表
+- `POST /api/room/detail/:id` - 获取教室详情
+- `POST /api/room/add/` - 添加教室
+- `POST /api/room/edit/:id` - 编辑教室
+- `POST /api/room/remove/:id` - 删除教室
 
 ### 其他管理接口
 - `POST /api/account/` - 账户相关
