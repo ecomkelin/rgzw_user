@@ -58,7 +58,13 @@
 - **功能**: 管理教室信息（增删改查、批量操作、打印等）
 - **权限**: 已认证用户
 
-#### 2.6 学员管理页面
+#### 2.6 科目管理页面
+- **路径**: `/layout/subjects`
+- **组件**: `subjects/Subjects.vue`
+- **功能**: 管理科目信息（含教学大纲、批量操作、打印等）
+- **权限**: 已认证用户
+
+#### 2.7 学员管理页面
 - **路径**: `/layout/students`
 - **组件**: `students/Students.vue`
 - **功能**: 管理学员信息（含高级搜索功能）
@@ -127,6 +133,7 @@
 - 用户管理
 - 组织管理
 - 教室管理
+- 科目管理
 - 学员管理
 - 仪表盘
 
@@ -244,6 +251,12 @@
 - `POST /api/room/add/` - 添加教室
 - `POST /api/room/edit/:id` - 编辑教室
 - `POST /api/room/remove/:id` - 删除教室
+
+### 科目相关
+- `POST /api/subject/list/` - 获取科目列表
+- `POST /api/subject/detail/:id` - 获取科目详情
+- `POST /api/subject/add/` - 添加科目
+- `POST /api/subject/edit/:id` - 编辑科目
 
 ### 其他管理接口
 - `POST /api/account/` - 账户相关

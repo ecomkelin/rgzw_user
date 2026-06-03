@@ -36,8 +36,9 @@
         <el-sub-menu index="/school">
           <template #title>
             <el-icon><School /></el-icon>
-            <span>学生管理</span>
+            <span>学校管理</span>
           </template>
+          <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
@@ -94,8 +95,9 @@
         <el-sub-menu index="/school">
           <template #title>
             <el-icon><School /></el-icon>
-            <span>学生管理</span>
+            <span>学校管理</span>
           </template>
+          <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
@@ -170,7 +172,8 @@ import {
   ArrowDown,
   UserFilled,
   Menu,
-  OfficeBuilding
+  OfficeBuilding,
+  Reading
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { resetTour, startTour } from '../composables/useTour'
@@ -193,6 +196,7 @@ const pageTitle = computed(() => {
     '/layout/users': '用户管理',
     '/layout/orgs': '组织管理',
     '/layout/rooms': '教室管理',
+    '/layout/subjects': '科目管理',
     '/layout/students': '学生列表',
     '/layout/analytics': '数据分析'
   }

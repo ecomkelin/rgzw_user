@@ -9,6 +9,7 @@
  *     ├─ users                      用户管理
  *     ├─ orgs                       组织管理
  *     ├─ rooms                      教室管理
+ *     ├─ subjects                   科目管理
  *     ├─ students                   学员管理
  *     └─ analytics                  数据分析
  *   /                               重定向到 /layout/dashboard
@@ -68,6 +69,12 @@ const routes = [
         path: 'rooms',
         name: 'Rooms',
         component: () => import('../views/rooms/Rooms.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'subjects',
+        name: 'Subjects',
+        component: () => import('../views/subjects/Subjects.vue'),
         meta: { requiresAuth: true }
       },
       {
