@@ -40,7 +40,9 @@
         v-loading="loading"
         style="width: 100%"
         row-key="_id"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column prop="name" label="真实姓名" width="120"></el-table-column>
         <el-table-column prop="gender" label="性别" width="80">
           <template #default="{ row }">
@@ -87,6 +89,44 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 批量操作工具栏 -->
+      <div class="batch-operation" v-if="selectedRows.length > 0">
+        <el-divider />
+        <div class="batch-toolbar">
+          <span class="selection-info">已选择 {{ selectedCount }} 项</span>
+          <div class="batch-buttons">
+            <el-button @click="batchUpdateStatus(true)" type="success" size="small">
+              批量激活
+            </el-button>
+            <el-button @click="batchUpdateStatus(false)" type="warning" size="small">
+              批量禁用
+            </el-button>
+            <el-button @click="batchDelete" type="danger" size="small">
+              批量删除
+            </el-button>
+            <el-button @click="selectedRows = []" size="small">
+              取消选择
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 打印操作工具栏 -->
+      <div class="print-operation">
+        <el-divider />
+        <div class="print-toolbar">
+          <span class="print-info">打印功能</span>
+          <div class="print-buttons">
+            <el-button @click="printTable(selectedRows)" type="primary" size="small" :disabled="selectedRows.length === 0">
+              打印选中项
+            </el-button>
+            <el-button @click="printTable(students)" type="primary" size="small">
+              打印全部数据
+            </el-button>
+          </div>
+        </div>
+      </div>
 
       <el-pagination
         v-model:current-page="pagination.currentPage"
@@ -382,12 +422,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { studentService } from '../../api/student'
 import { accountService } from '../../api/account'
 import { formatDate, formatGender, formatActiveStatus } from '../../utils/format'
+import { printTable as printTableUtil } from '../../utils/print'
 import AdvancedSearch from '../../components/AdvancedSearch.vue'
 
 // 状态变量
 const students = ref([])
 const loading = ref(false)
 const studentFormRef = ref()
+const selectedRows = ref([]) // 批量操作选中的行
 const availableAccounts = ref([]) // 可用账户选项
 
 // 高级搜索参数
@@ -1224,6 +1266,107 @@ const closeDialog = () => {
   }
 }
 
+// 处理表格选择变化
+const handleSelectionChange = (selection) => {
+  selectedRows.value = selection
+}
+
+// 批量更新状态
+const batchUpdateStatus = async (status) => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请至少选择一项进行操作')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要${status ? '激活' : '禁用'}选中的 ${selectedRows.value.length} 项吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const ids = selectedRows.value.map(item => item._id)
+    const promises = ids.map(id =>
+      studentService.updateStudent(id, { isActive: status })
+    )
+
+    const results = await Promise.allSettled(promises)
+    const succeeded = results.filter(result => result.status === 'fulfilled').length
+
+    ElMessage.success(`批量操作完成，成功${succeeded}项，共${selectedRows.value.length}项`)
+    fetchStudents() // 刷新数据
+    selectedRows.value = [] // 清空选择
+  } catch {
+    // 用户取消操作
+  }
+}
+
+// 批量删除（软删除：将 isActive 设置为 false）
+const batchDelete = async () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请至少选择一项进行删除')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要禁用选中的 ${selectedRows.value.length} 项吗？此操作将取消这些学生的激活状态。`,
+      '警告',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error'
+      }
+    )
+
+    const ids = selectedRows.value.map(item => item._id)
+    const promises = ids.map(id =>
+      studentService.updateStudent(id, { isActive: false })
+    )
+
+    const results = await Promise.allSettled(promises)
+    const succeeded = results.filter(result => result.status === 'fulfilled').length
+
+    ElMessage.success(`批量操作完成，成功${succeeded}项，共${selectedRows.value.length}项`)
+    fetchStudents() // 刷新数据
+    selectedRows.value = [] // 清空选择
+  } catch {
+    // 用户取消操作
+  }
+}
+
+// 获取选中行的数量
+const selectedCount = computed(() => selectedRows.value.length)
+
+// 打印表格功能
+const printTable = (data) => {
+  const columns = [
+    { prop: 'name', label: '真实姓名' },
+    { prop: 'gender', label: '性别', formatter: (row) => formatGender(row.gender) },
+    { prop: 'birthday', label: '出生日期/年龄', formatter: (row) =>
+      row.birthday ? formatDate(row.birthday) + ' (' + calculateAge(row.birthday) + '岁)' : '-'
+    },
+    { prop: 'identityNo', label: '身份证号' },
+    { prop: 'isActive', label: '状态', formatter: (row) => formatActiveStatus(row.isActive) },
+    { prop: 'Account.name', label: '账号名称' },
+    { prop: 'Account.phone', label: '账号联系方式' },
+    { prop: 'school', label: '学校' },
+    { prop: 'phone', label: '手机号' },
+    { prop: 'address', label: '证件地址' },
+    { prop: 'currentAddress', label: '现居住地址' },
+    { prop: 'sourceType', label: '来源类型' },
+    { prop: 'Org.name', label: '所属组织' },
+    { prop: 'sort', label: '排序', formatter: (row) => row.sort || 0 },
+    { prop: 'createdAt', label: '创建时间', formatter: (row) => formatDate(row.createdAt) }
+  ]
+
+  printTableUtil(data, columns, '学生管理数据报表')
+}
+
 onMounted(async () => {
   await fetchAccounts() // 获取账户列表
   fetchStudents()
@@ -1262,6 +1405,52 @@ onMounted(async () => {
 .table-actions {
   display: flex;
   gap: 5px;
+}
+
+.batch-operation {
+  margin-top: 16px;
+}
+
+.batch-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.selection-info {
+  font-weight: 500;
+  color: #606266;
+}
+
+.batch-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.print-operation {
+  margin-top: 16px;
+}
+
+.print-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.print-info {
+  font-weight: 500;
+  color: #606266;
+}
+
+.print-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .el-tabs {
