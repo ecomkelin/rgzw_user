@@ -591,17 +591,25 @@ const authStore = useAuthStore()
 /**
  * 当前用户所属 Org。
  * - 优先使用 store 缓存（登录后已写入 localStorage）
- * - 缺失时实时回拉一次 /user/detail/:currentUserId，写回 store
+ * - 缺失时优先从 authStore.user.currentUser（已 populate 的对象）上直接读 .Org
+ * - 仍拿不到则实时回拉一次 /user/detail/:id，写回 store
  * - 仍拿不到则返回 null：管理员可能无 Org 限制；其他用户必须拒绝新增
  */
 const currentOrgId = computed(() => authStore.currentOrgId || null)
 
 const ensureCurrentOrgId = async () => {
   if (authStore.currentOrgId) return authStore.currentOrgId
-  const currentUserId = authStore.user?.currentUser
-  if (!currentUserId) return null
+  const currentUser = authStore.user?.currentUser
+  if (!currentUser) return null
+  // 登录响应已 populate 时，currentUser 是对象 { _id, Org, ... }，直接取 Org
+  if (typeof currentUser === 'object') {
+    const orgId = currentUser.Org || null
+    authStore.setCurrentOrgId(orgId)
+    return orgId
+  }
+  // 兜底：currentUser 是裸 ID 字符串时才回拉，否则会把对象拼到 URL 里被后端 ObjectId 校验拒绝
   try {
-    const res = await userService.getUserById(currentUserId)
+    const res = await userService.getUserById(currentUser)
     const orgId = res?.data?.data?.item?.Org || null
     authStore.setCurrentOrgId(orgId)
     return orgId

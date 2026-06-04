@@ -77,20 +77,26 @@ const loading = ref(false)
 const loginFormRef = ref()
 
 /**
- * 登录成功后，通过 account.currentUser 拉取当前 User 详情，
- * 把 User.Org 写入 store + localStorage，供后续课程管理等页面的 Org 过滤使用。
+ * 登录成功后，把 User.Org 写入 store + localStorage，供后续课程管理等页面的 Org 过滤使用。
  *
- * 说明：登录接口返回的 account.currentUser 仅为 ObjectId，
- * 真实的 Org 字段在 User 文档上，因此需要再请求一次 user detail。
+ * 关键：后端登录接口对 account.currentUser 做了 populate（select: 'nickname Org roleTemp'），
+ * 所以 account.currentUser 是对象 { _id, Org, ... }，而不是 ObjectId 字符串。
+ * 因此优先直接从已 populate 的对象上读取 .Org；只有当 currentUser 是裸 ID 字符串时，
+ * 才回拉一次 /user/detail/:id，否则会把对象拼到 URL 路径里被后端 ObjectId 校验拒绝。
  */
 const loadCurrentUserOrg = async (account) => {
-  const currentUserId = account?.currentUser
-  if (!currentUserId) {
+  const currentUser = account?.currentUser
+  if (!currentUser) {
     // Student 账户没有 currentUser.Org；管理员（isAdmin）通常无 Org 限制
     return null
   }
+  // 1) 首选：登录响应已 populate，直接读取
+  if (typeof currentUser === 'object') {
+    return currentUser.Org || null
+  }
+  // 2) 兜底：currentUser 是裸 ID 字符串，再请求 user detail
   try {
-    const res = await userService.getUserById(currentUserId)
+    const res = await userService.getUserById(currentUser)
     const userItem = res?.data?.data?.item
     return userItem?.Org || null
   } catch (e) {
