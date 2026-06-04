@@ -481,7 +481,7 @@ const dialog = reactive({
 
     // 地址信息（从省份到区域）
     Nation: '',
-    Provence: '',  // 注意：后端模型使用Provence而非Province
+    Province: '',  // 注意：后端模型使用Province而非Province
     City: '',
     Area: '',
 
@@ -776,7 +776,7 @@ const openCreateDialog = () => {
 
     // 地址信息（从省份到区域）
     Nation: '',
-    Provence: '',  // 注意：后端模型使用Provence而非Province
+    Province: '',  // 注意：后端模型使用Province而非Province
     City: '',
     Area: '',
 
@@ -828,7 +828,7 @@ const openEditDialog = (row) => {
 
     // 地址信息（从省份到区域）
     Nation: row.Nation || '',
-    Provence: row.Provence || '',  // 注意：后端模型使用Provence而非Province
+    Province: row.Province || '',  // 注意：后端模型使用Province而非Province
     City: row.City || '',
     Area: row.Area || '',
 
