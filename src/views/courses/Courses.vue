@@ -869,7 +869,7 @@ const fetchSubjects = async () => {
       filter,
       options: {
         limit: 1000,
-        sortObj: { sort: -1 }
+        sort: { sort: -1 }
       }
     })
     if (response.data.success) {
@@ -890,7 +890,7 @@ const fetchUsers = async () => {
       filter,
       options: {
         limit: 1000,
-        sortObj: { sort: -1 }
+        sort: { sort: -1 }
       }
     })
     if (response.data.success) {
@@ -911,7 +911,7 @@ const fetchRooms = async () => {
       filter,
       options: {
         limit: 1000,
-        sortObj: { sort: -1 }
+        sort: { sort: -1 }
       }
     })
     if (response.data.success) {
@@ -963,7 +963,7 @@ const fetchCourses = async () => {
 
     const options = {
       limit: pagination.pageSize,
-      sortObj: { sort: -1, createdAt: -1 },
+      sort: { sort: -1, createdAt: -1 },
       populate: [
         { path: 'Subject', select: 'name category' },
         { path: 'mainTeacher', select: 'nickname roleTemp' },

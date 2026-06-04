@@ -386,7 +386,7 @@ const fetchAccounts = async () => {
     const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
     const options = {
       limit: pagination.pageSize,
-      sortObj: { createdAt: -1 }, // 根据后端API文档使用sortObj
+      sort: { createdAt: -1 }, // 根据后端API文档使用sort
       // 不populate Org字段，因为Account模型中没有这个字段
     };
 
@@ -403,7 +403,7 @@ const fetchAccounts = async () => {
       },
       options: {
         limit: pagination.pageSize,
-        sortObj: { createdAt: -1 }, // 根据后端API文档使用sortObj
+        sort: { createdAt: -1 }, // 根据后端API文档使用sort
         populate: [{ path: 'currentUser', select: 'nickname roleTemp isActive Org' }] // populate currentUser信息
       }
     }

@@ -245,7 +245,7 @@ const fetchOrgs = async () => {
     const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
     const options = {
       limit: pagination.pageSize,
-      sortObj: { sort: -1, createdAt: -1 }, // 先按sort排序，再按创建时间排序
+      sort: { sort: -1, createdAt: -1 }, // 先按sort排序，再按创建时间排序
     };
 
     // 只有当skipValue大于0时才添加skip参数，避免后端验证错误

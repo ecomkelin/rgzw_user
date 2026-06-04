@@ -599,7 +599,7 @@ const fetchStudents = async () => {
     const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
     const options = {
       limit: pagination.pageSize,
-      sortObj: { sort: -1, createdAt: -1 }, // 先按sort排序，再按创建时间排序
+      sort: { sort: -1, createdAt: -1 }, // 先按sort排序，再按创建时间排序
       populate: [
         { path: 'Org', select: 'name' },
         { path: 'Account', select: 'name phone email' } // 添加Account信息的populate

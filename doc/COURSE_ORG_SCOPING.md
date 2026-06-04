@@ -60,7 +60,7 @@
 ```js
 const options = {
   limit: pagination.pageSize,
-  sortObj: { sort: -1, createdAt: -1 },
+  sort: { sort: -1, createdAt: -1 },
   populate: [
     { path: 'Subject', select: 'name category' },
     { path: 'mainTeacher', select: 'nickname roleTemp' },

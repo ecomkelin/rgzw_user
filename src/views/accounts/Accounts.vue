@@ -549,7 +549,7 @@ const fetchAccounts = async () => {
     const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
     const options = {
       limit: pagination.pageSize,
-      sortObj: { createdAt: -1 }, // 根据后端API文档使用sortObj
+      sort: { createdAt: -1 }, // 根据后端API文档使用sort
       populate: [{ path: 'currentUser', select: 'nickname roleTemp isActive Org' }] // populate currentUser信息
     };
 

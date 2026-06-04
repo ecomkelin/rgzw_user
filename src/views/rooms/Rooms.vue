@@ -316,7 +316,7 @@ const fetchOrgs = async () => {
       filter: { isActive: true },
       options: {
         limit: 1000,
-        sortObj: { sort: -1 }
+        sort: { sort: -1 }
       }
     })
 
@@ -359,7 +359,7 @@ const fetchRooms = async () => {
 
     const options = {
       limit: pagination.pageSize,
-      sortObj: { sort: -1, createdAt: -1 },
+      sort: { sort: -1, createdAt: -1 },
       populate: [
         { path: 'Org', select: 'name' }
       ]
