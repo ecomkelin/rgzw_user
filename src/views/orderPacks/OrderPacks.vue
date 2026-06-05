@@ -123,7 +123,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="家长账户" min-width="180" show-overflow-tooltip>
+        <el-table-column label="关联账户" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <template v-if="row.Account">
               <span>{{ row.Account.name || '-' }}</span>
@@ -270,8 +270,8 @@
 
           <el-form-item v-if="selectedStudent" label=" ">
             <div class="readonly-line">
-              <span class="muted">家长账户：</span>
-              <span>{{ selectedStudent.Account?.name || '未关联账户' }}</span>
+              <span class="muted">关联账户：</span>
+              <span>{{ selectedStudent.Account?.name || selectedStudent.Account || '未关联账户' }}</span>
               <span v-if="selectedStudent.Account?.phone" class="muted">
                 ({{ selectedStudent.Account.phone }})
               </span>
@@ -306,12 +306,12 @@
                 / {{ selectedPack.validDays }} 天
               </span>
               <span class="muted">/ 原价 {{ formatPrice(selectedPack.priceOrigin) }}</span>
-              <span class="muted">/ 常规 {{ formatPrice(selectedPack.priceRegular) }}</span>
+              <span class="muted">/ 打折价 {{ formatPrice(selectedPack.priceRegular) }}</span>
               <span
                 v-if="selectedPack.priceSale !== undefined && selectedPack.priceSale !== null && selectedPack.priceSale !== ''"
                 class="muted"
               >
-                / 活动 {{ formatPrice(selectedPack.priceSale) }}
+                / 活动价 {{ formatPrice(selectedPack.priceSale) }}
               </span>
             </div>
           </el-form-item>
@@ -376,12 +376,30 @@
           <el-form-item label="支付时间">
             <el-date-picker
               v-model="dialog.form.paidAt"
-              type="datetime"
+              type="date"
               placeholder="选择支付时间（可选）"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DD HH:mm:ss"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
               style="width: 100%"
             ></el-date-picker>
+          </el-form-item>
+
+          <el-form-item label="支付状态" prop="payStatus">
+            <el-select
+              v-model="dialog.form.payStatus"
+              placeholder="请选择支付状态"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="opt in PAY_STATUS_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              ></el-option>
+            </el-select>
+            <div class="field-hint">
+              若选择"已支付"且未填写支付时间，后端会自动写入当前时间
+            </div>
           </el-form-item>
 
           <el-form-item label="备注">
@@ -395,10 +413,29 @@
             ></el-input>
           </el-form-item>
 
-          <el-form-item v-if="authStore.currentOrgId" label=" ">
-            <el-tag type="info">
-              系统将自动使用学生所在校区: {{ orgName || '加载中...' }}
-            </el-tag>
+          <el-form-item label="所属校区" prop="__selectedOrgId">
+            <el-select
+              v-model="selectedOrgId"
+              placeholder="请选择校区"
+              :disabled="!isAdmin"
+              style="width: 100%"
+              @change="onSelectedOrgChange"
+            >
+              <el-option
+                v-for="o in orgOptions"
+                :key="o._id"
+                :label="o.name"
+                :value="o._id"
+              ></el-option>
+            </el-select>
+            <div class="field-hint">
+              <template v-if="isAdmin">
+                管理员可选择任意校区；订单的 Org 字段将由所选学生决定（后端自动）
+              </template>
+              <template v-else>
+                校区由当前账户固定（不可修改）
+              </template>
+            </div>
           </el-form-item>
         </template>
 
@@ -414,7 +451,7 @@
             <span class="readonly-line">{{ dialog.form._studentName || '-' }}</span>
           </el-form-item>
 
-          <el-form-item label="家长账户">
+          <el-form-item label="关联账户">
             <span class="readonly-line">{{ dialog.form._accountName || '-' }}</span>
           </el-form-item>
 
@@ -426,7 +463,7 @@
             <span class="readonly-line">{{ dialog.form.totalLesson || 0 }} 课时</span>
           </el-form-item>
 
-          <el-form-item label="原价 / 常规 / 活动">
+          <el-form-item label="原价 / 打折 / 活动">
             <span class="readonly-line">
               {{ formatPrice(dialog.form.priceOrigin) }} /
               {{ formatPrice(dialog.form.priceRegular) }} /
@@ -489,10 +526,10 @@
           <el-form-item label="支付时间" prop="paidAt">
             <el-date-picker
               v-model="dialog.form.paidAt"
-              type="datetime"
+              type="date"
               placeholder="选择支付时间（可选）"
-              format="YYYY-MM-DD HH:mm"
-              value-format="YYYY-MM-DD HH:mm:ss"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
               style="width: 100%"
             ></el-date-picker>
             <div class="field-hint">
@@ -543,7 +580,7 @@
         <el-descriptions-item label="学生">
           {{ detailDialog.data.Student?.name || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="家长账户">
+        <el-descriptions-item label="关联账户">
           <template v-if="detailDialog.data.Account">
             {{ detailDialog.data.Account.name }}
             <span v-if="detailDialog.data.Account.phone" class="muted">
@@ -564,7 +601,7 @@
         <el-descriptions-item label="原价">
           {{ formatPrice(detailDialog.data.priceOrigin) }}
         </el-descriptions-item>
-        <el-descriptions-item label="常规售价">
+        <el-descriptions-item label="打折价">
           {{ formatPrice(detailDialog.data.priceRegular) }}
         </el-descriptions-item>
         <el-descriptions-item label="活动价">
@@ -684,10 +721,14 @@ const filters = reactive({
 const studentOptions = ref([])
 const packOptions = ref([])
 const courseOptions = ref([])
+const orgOptions = ref([])                  // admin 跨 Org 选择
 const studentLoading = ref(false)
 const packLoading = ref(false)
 const courseLoading = ref(false)
 const orgName = ref('')
+
+// 弹窗里当前选中的 Org(admin 可改;manager 锁定为 currentOrgId)
+const selectedOrgId = ref('')
 
 // 学生/课包在弹窗里"已选中"的完整对象(用于显示快照)
 const selectedStudent = ref(null)
@@ -711,12 +752,32 @@ const setIf = (obj, field, value) => {
 }
 
 // ===================== 远程搜索 =====================
+// 关键：后端 regExp:'' 会被当作"匹配空字符串" → 0 结果。
+// 用 appendRegExp 只在 query 非空时传 regExp,空查询时只传 isActive 过滤。
+//
+// 行为：
+//   - admin: 按 selectedOrgId 过滤 Org 范围；不带 isActive（admin 应能看全部，便于补单/纠错）
+//   - manager: 强制使用 currentOrgId（前端不再允许改 selectedOrgId）
+const buildOrgFilter = (extra = {}) => {
+  const orgId = selectedOrgId.value || authStore.currentOrgId
+  const filter = { ...extra }
+  if (orgId) filter.Org = orgId
+  return filter
+}
+
 const searchStudents = async (query) => {
   studentLoading.value = true
   try {
+    const filter = buildOrgFilter()
+    appendRegExp(filter, query)
     const response = await studentService.getStudents({
-      filter: { regExp: query || '', isActive: true },
-      options: { limit: 50, sort: { createdAt: -1 } }
+      filter,
+      options: {
+        limit: 200,
+        sort: { createdAt: -1 },
+        // populate Account,让弹窗里能显示"关联账户"名称/手机号
+        populate: [{ path: 'Account', select: 'name phone' }]
+      }
     })
     if (response.data.success) {
       studentOptions.value = response.data.data?.items || []
@@ -731,9 +792,11 @@ const searchStudents = async (query) => {
 const searchPacks = async (query) => {
   packLoading.value = true
   try {
+    const filter = buildOrgFilter()
+    appendRegExp(filter, query)
     const response = await packService.getPacks({
-      filter: { regExp: query || '', isActive: true },
-      options: { limit: 50, sort: { createdAt: -1 } }
+      filter,
+      options: { limit: 200, sort: { createdAt: -1 } }
     })
     if (response.data.success) {
       packOptions.value = response.data.data?.items || []
@@ -748,9 +811,11 @@ const searchPacks = async (query) => {
 const searchCourses = async (query) => {
   courseLoading.value = true
   try {
+    const filter = buildOrgFilter()
+    appendRegExp(filter, query)
     const response = await courseService.getCourses({
-      filter: { regExp: query || '' },
-      options: { limit: 50, sort: { createdAt: -1 } }
+      filter,
+      options: { limit: 200, sort: { createdAt: -1 } }
     })
     if (response.data.success) {
       courseOptions.value = response.data.data?.items || []
@@ -762,14 +827,38 @@ const searchCourses = async (query) => {
   }
 }
 
+// 拉取 Org 列表（admin 用，manager 不会调）
+const searchOrgs = async () => {
+  try {
+    const response = await orgService.getOrgs({
+      filter: {},
+      options: { limit: 200, sort: { createdAt: -1 } }
+    })
+    if (response.data.success) {
+      orgOptions.value = response.data.data?.items || []
+    }
+  } catch (e) {
+    console.error('加载组织列表失败:', e)
+  }
+}
+
 // 学生切换时,把选中的学生对象存起来(用于显示账户/校区)
 const onStudentChange = (studentId) => {
   selectedStudent.value = studentOptions.value.find(s => s._id === studentId) || null
 }
 
-// 课包切换时,存起来用于显示快照
+// 课包切换时,存起来用于显示快照 + 自动填实付金额
+// 规则：有 priceSale(活动价) 用活动价；否则用 priceRegular(打折价)。
+// 允许用户在 el-input-number 里再手动改(实际收款可能与标价不同)
 const onPackChange = (packId) => {
-  selectedPack.value = packOptions.value.find(p => p._id === packId) || null
+  const pack = packOptions.value.find(p => p._id === packId) || null
+  selectedPack.value = pack
+  if (!pack) return
+  const hasSale = pack.priceSale !== undefined && pack.priceSale !== null && pack.priceSale !== ''
+  const autoPrice = hasSale ? pack.priceSale : pack.priceRegular
+  if (autoPrice !== undefined && autoPrice !== null) {
+    dialog.form.finalPrice = autoPrice
+  }
 }
 
 // ===================== 列表查询 =====================
@@ -878,13 +967,30 @@ const openCreateDialog = async () => {
   Object.assign(dialog.form, createEmptyForm())
   selectedStudent.value = null
   selectedPack.value = null
-  // 预拉学生和课包列表(空 query,默认列表)
+  // 初始化 Org：admin 默认 currentOrgId，manager 也用 currentOrgId（前端不允许改）
+  selectedOrgId.value = authStore.currentOrgId || ''
+  // 预拉 Org 列表（admin 才会看到下拉项，但拉一下也不亏）
+  if (isAdmin.value) {
+    await searchOrgs()
+  }
+  // 预拉学生/课包/课程列表
   await Promise.all([searchStudents(''), searchPacks(''), searchCourses('')])
   // 加载 org 名称(用于提示)
   await loadOrgName()
   nextTick(() => {
     orderFormRef.value?.clearValidate?.()
   })
+}
+
+// Org 切换：admin 改了 selectedOrgId 之后，重搜 3 个下拉
+const onSelectedOrgChange = async (orgId) => {
+  selectedOrgId.value = orgId || ''
+  // 清空已选的学生/课包（避免 Org 不一致）
+  selectedStudent.value = null
+  selectedPack.value = null
+  dialog.form.Student = ''
+  dialog.form.Pack = ''
+  await Promise.all([searchStudents(''), searchPacks(''), searchCourses('')])
 }
 
 // 打开编辑对话框
@@ -941,15 +1047,24 @@ const saveOrder = async () => {
   try {
     const data = {}
 
+    // 后端 optionalDate 校验只接受 YYYY-MM-DD（不接受带时分秒的）。
+    // 即便 el-date-picker value-format 配错，前端兜底截断到日。
+    const paidAtDateOnly = (() => {
+      const v = dialog.form.paidAt
+      if (!v || typeof v !== 'string') return v
+      return v.length >= 10 ? v.slice(0, 10) : v
+    })()
+
     if (dialog.mode === 'create') {
       // 新建:必填 Student / Pack / finalPrice,其他可选
       setIf(data, 'Student', dialog.form.Student)
       setIf(data, 'Pack', dialog.form.Pack)
       setIf(data, 'finalPrice', dialog.form.finalPrice)
       setIf(data, 'Course', dialog.form.Course)
+      setIf(data, 'payStatus', dialog.form.payStatus)
       setIf(data, 'payMethod', dialog.form.payMethod)
       setIf(data, 'transactionId', (dialog.form.transactionId || '').trim())
-      setIf(data, 'paidAt', dialog.form.paidAt)
+      setIf(data, 'paidAt', paidAtDateOnly)
       setIf(data, 'remark', (dialog.form.remark || '').trim())
       // 注意:Account / 快照 / Org / createdBy 由后端自动处理
     } else {
@@ -957,14 +1072,16 @@ const saveOrder = async () => {
       setIf(data, 'payStatus', dialog.form.payStatus)
       setIf(data, 'payMethod', dialog.form.payMethod)
       setIf(data, 'transactionId', (dialog.form.transactionId || '').trim())
-      setIf(data, 'paidAt', dialog.form.paidAt)
+      setIf(data, 'paidAt', paidAtDateOnly)
       setIf(data, 'remark', (dialog.form.remark || '').trim())
     }
 
     let response
     if (dialog.mode === 'create') {
+      console.log('[OrderPacks] create payload:', JSON.stringify(data))
       response = await orderPackService.createOrderPack(data)
     } else {
+      console.log('[OrderPacks] edit payload:', JSON.stringify(data))
       response = await orderPackService.updateOrderPack(dialog.form._id, data)
     }
 
@@ -1031,7 +1148,7 @@ const printTable = (data) => {
   const columns = [
     { prop: '_id', label: '订单号', formatter: (r) => shortId(r._id) },
     { prop: 'Student', label: '学生', formatter: (r) => r.Student?.name || '-' },
-    { prop: 'Account', label: '家长账户', formatter: (r) => r.Account?.name || '-' },
+    { prop: 'Account', label: '关联账户', formatter: (r) => r.Account?.name || '-' },
     { prop: 'packName', label: '课包' },
     { prop: 'totalLesson', label: '课时数', formatter: (r) => `${r.totalLesson || 0} 课时` },
     { prop: 'finalPrice', label: '实付金额', formatter: (r) => formatPrice(r.finalPrice) },
@@ -1044,18 +1161,6 @@ const printTable = (data) => {
 }
 
 onMounted(async () => {
-  // 调试:打印当前账号权限,确认 "新建订单" 按钮为什么没显示
-  console.log('[OrderPacks] 权限自检:', {
-    accountType: accountType.value,
-    isAdmin: authStore.user?.isAdmin,
-    isManager: isManager.value,
-    canAdd: canAdd.value,
-    canEdit: canEdit.value,
-    currentUserType: typeof currentUserObj.value,
-    currentUserRoleTemp: currentUserObj.value?.roleTemp,
-    currentUserOrg: currentUserObj.value?.Org
-  })
-
   // 初始化时预拉学生/课包选项,确保筛选区可用
   await Promise.all([searchStudents(''), searchPacks('')])
   await loadOrgName()
