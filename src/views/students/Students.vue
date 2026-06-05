@@ -615,19 +615,12 @@ const fetchStudents = async () => {
     const filter = {};
 
     // 基础搜索条件
-    // 身份证号搜索
-    if (filters.identityNo) {
-      filter.identityNo = { $regex: filters.identityNo, $options: 'i' };
-    }
-
-    // 真实姓名搜索
-    if (filters.name) {
-      filter.name = { $regex: filters.name, $options: 'i' };
-    }
-
-    // 学校搜索
-    if (filters.school) {
-      filter.school = { $regex: filters.school, $options: 'i' };
+    // 后端 v7.x Student 模块的 listVD 只接受 `filter.regExp`（模糊匹配 name），
+    // 旧的 `name / school / identityNo` 多字段正则会被 matchedData() 静默剔除。
+    // 多个关键字取第一个非空值作为 regExp（更细粒度的搜索需要后端 DAO 升级）
+    const primaryKeyword = filters.name || filters.school || filters.identityNo;
+    if (primaryKeyword) {
+      filter.regExp = primaryKeyword;
     }
 
     // 状态筛选

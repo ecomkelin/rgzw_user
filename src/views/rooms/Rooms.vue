@@ -607,7 +607,11 @@ const batchDelete = async () => {
       }
     )
 
-    const promises = selectedRows.value.map(item => roomService.deleteRoom(item._id))
+    // 后端 v7.x Room 模块暂未提供 /remove 物理删除接口（路由已注释）。
+    // 改用「软删除」：将 isActive 置 false。
+    const promises = selectedRows.value.map(item =>
+      roomService.updateRoom(item._id, { isActive: false })
+    )
 
     const results = await Promise.allSettled(promises)
     const succeeded = results.filter(result => result.status === 'fulfilled').length

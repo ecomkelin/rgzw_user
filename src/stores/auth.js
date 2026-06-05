@@ -167,8 +167,9 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('currentOrgId')
 
       // 发送请求清理服务器端的refresh token cookie
+      // 后端 v7.x 起 /auth/logout 已改为 POST；credentials: 'include' 保证带上 HttpOnly cookie
       fetch('/api/auth/logout', {
-        method: 'GET',
+        method: 'POST',
         credentials: 'include' // 确保包含cookies
       }).catch(err => console.error('Logout error:', err))
     },
@@ -190,9 +191,10 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         // 尝试使用需要认证的端点来验证token是否有效
-        // 使用正确的端点：/api/user/self/
+        // 后端 v7.x 的真实端点是 /api/user/self（无尾斜杠）
+        // 旧版请求的 `/api/user/self/` 走 404 旁路，被错误地当作「未授权」
         console.log('Making request to validate token...');
-        const response = await fetch('/api/user/self/', {
+        const response = await fetch('/api/user/self', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
@@ -220,8 +222,10 @@ export const useAuthStore = defineStore('auth', {
           try {
             const result = await response.json()
             console.log('Response data:', result);
-            if (result.data) {
-              this.setUser(result.data)
+            // /api/user/self 返回 { data: { item: User } }，统一写到 store
+            const item = result?.data?.item || result?.data
+            if (item) {
+              this.setUser(item)
             }
           } catch (e) {
             // 如果解析响应失败，也不影响认证状态

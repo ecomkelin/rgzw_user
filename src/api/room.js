@@ -39,14 +39,8 @@ export const roomService = {
    */
   updateRoom(id, roomData) {
     return http.post(`/room/edit/${id}`, roomData)
-  },
-
-  /**
-   * 删除教室
-   * @param {string|number} id
-   * @returns {Promise<import('axios').AxiosResponse>}
-   */
-  deleteRoom(id) {
-    return http.post(`/room/remove/${id}`)
   }
+
+  // 教室模块在后端暂未开放 /remove/:id 物理删除路由（见 Room.module apiDesc.md）
+  // 禁用请改用 updateRoom(id, { isActive: false })。
 }

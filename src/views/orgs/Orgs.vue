@@ -256,12 +256,11 @@ const fetchOrgs = async () => {
     // 构建查询条件
     const filter = {};
 
-    // 名称搜索，支持组织名称和组织简称的模糊搜索
+    // 名称搜索 —— 后端 v7.x Org listVD 仅接受字符串形式的 `filter.name`（精确匹配）
+    // 以及 `filter.regExp`（模糊匹配）。原 `$or` 多字段正则会被 matchedData() 静默剔除，
+    // 这里改为传 regExp（DAO 内部会做 name / nickname 的模糊搜索）。
     if (filters.name) {
-      filter.$or = [
-        { name: { $regex: filters.name, $options: 'i' } },
-        { nickname: { $regex: filters.name, $options: 'i' } }
-      ];
+      filter.regExp = filters.name;
     }
 
     // 统一代码精确匹配

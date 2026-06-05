@@ -42,11 +42,12 @@ export const subjectService = {
   },
 
   /**
-   * 删除科目（软删除：将 isActive 设置为 false）
+   * 停用科目（软删除：后端 v7.x 暂未开放 /remove/:id 路由，
+   * 改用 update + isActive:false 实现「逻辑下架」）
    * @param {string|number} id
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  deleteSubject(id) {
+  deactivateSubject(id) {
     return http.post(`/subject/edit/${id}`, { isActive: false })
   }
 }

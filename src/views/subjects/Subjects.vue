@@ -751,7 +751,7 @@ const batchDelete = async () => {
     )
 
     const promises = selectedRows.value.map(item =>
-      subjectService.deleteSubject(item._id)
+      subjectService.deactivateSubject(item._id)
     )
 
     const results = await Promise.allSettled(promises)

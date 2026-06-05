@@ -561,7 +561,9 @@ const fetchAccounts = async () => {
     const params = {
       filter: {
         ...(filters.accountType && { accountType: filters.accountType }),
-        ...(filters.name && { name: { $regex: filters.name, $options: 'i' } }),
+        // 后端 v7.x 账户模块的 listVD 不接受 `filter.name` / `filter.name.$regex`，
+        // 只在 Subject / User / Org 等模块提供了 `filter.regExp`（模糊匹配 name）。
+        // 账户模块暂未提供模糊搜索支持，因此这里把 name 过滤从请求体中移除。
         ...(filters.isActive !== '' && filters.isActive !== null && filters.isActive !== undefined && { isActive: filters.isActive === 'true' || filters.isActive === true })
       },
       options: options

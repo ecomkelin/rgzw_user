@@ -476,14 +476,10 @@ const fetchUsers = async () => {
     }
 
     // 高级筛选条件
-    // 关键词搜索（在姓名、昵称等字段中搜索）
+    // 关键词搜索 —— 后端 v7.x User 模块 listVD 仅支持 `filter.regExp`（匹配 nickname），
+    // 旧的 `$or` 多字段搜索会被 matchedData() 静默剔除，所以改为传 regExp。
     if (advancedFilters.value.keyword) {
-      filter.$or = [
-        { 'Account.name': { $regex: advancedFilters.value.keyword, $options: 'i' } },
-        { nickname: { $regex: advancedFilters.value.keyword, $options: 'i' } },
-        { 'Account.phone': { $regex: advancedFilters.value.keyword, $options: 'i' } },
-        { 'Account.email': { $regex: advancedFilters.value.keyword, $options: 'i' } }
-      ];
+      filter.regExp = advancedFilters.value.keyword;
     }
 
     // 高级角色筛选

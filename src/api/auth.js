@@ -25,9 +25,10 @@ export const authService = {
 
   /**
    * 登出（销毁服务器端 refresh cookie）
+   * 后端 v7.x 起改用 POST（与登录/刷新令牌保持一致的写操作语义）
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   logout() {
-    return http.get('/auth/logout')
+    return http.post('/auth/logout')
   }
 }

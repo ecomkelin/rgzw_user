@@ -1,5 +1,18 @@
 # 版本更新日志
 
+## v8.0.1
+- 与后端 v8.x 同步：
+  - 修复 `/api/auth/logout` 走 GET 的问题，改为 POST（与后端路由对齐）
+  - 修复 `authStore.logout()` 直接 fetch 走 GET 的问题，改为 POST
+  - 修复 `authStore.checkAuthStatus()` 验证端点 `/api/user/self/` 末尾的尾斜杠（404 旁路），改为 `/api/user/self`，并正确解析 `data.item` 写入 user
+  - 清理：移除 `api/room.js` 中 `deleteRoom`（后端 /remove 路由已注释），`Rooms.vue` 批量删除改为软删除（`updateRoom(id, { isActive: false })`）
+  - 清理：`api/subject.js` 中 `deleteSubject` 重命名为 `deactivateSubject`，`Subjects.vue` 调用方同步更新
+  - 清理：删除 `views/accounts/Accounts_updated.vue` 死文件
+  - 修复：`Users.vue` 关键词搜索用 `$or` 多字段正则会被后端 `matchedData()` 静默剔除，改用 `filter.regExp`（DAO 内部走 nickname 模糊）
+  - 修复：`Students.vue` 把 `filter.name / school / identityNo` 的 $regex 合并为 `filter.regExp`
+  - 修复：`Orgs.vue` 把 `filter.$or`（name/nickname）改为 `filter.regExp`（DAO 内部走 name/nickname 模糊）
+  - 修复：`Accounts.vue` 把无效的 `filter.name.$regex` 移除（账户模块 listVD 未提供模糊搜索）
+
 ## v7.4.2
 - 后端统一 sortObj 修改成了 sort 前端也需要
 
