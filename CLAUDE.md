@@ -41,7 +41,8 @@ rgzw_user/
 │   │   ├── rooms/             # 教室管理页面（含批量操作、打印功能）
 │   │   ├── subjects/          # 科目管理页面（含教学大纲、批量操作、打印功能）
 │   │   ├── courses/           # 课程管理页面（含排课规则、批量操作、打印功能、Org 范围控制）
-│   │   └── students/          # 学员管理页面（含高级搜索功能）
+│   │   ├── students/          # 学员管理页面（含高级搜索功能）
+│   │   └── packs/             # 课包管理页面（按 Pack 模块 API：list/detail/add/edit/remove）
 │   ├── App.vue                # 根组件
 │   └── main.js                # 应用入口
 ├── doc/                       # 项目文档
@@ -69,6 +70,7 @@ rgzw_user/
 - 科目管理（含教学大纲、批量操作、打印功能）
 - 课程管理（含排课规则、批量操作、打印功能、Org 范围控制 —— 详见 `doc/COURSE_ORG_SCOPING.md`）
 - 学员管理（含高级搜索功能）
+- 课包管理（按 Pack 模块 API：list/detail/add/edit/remove，含批量操作、打印功能）
 - 仪表盘
 
 ### 3. 搜索增强功能

@@ -52,6 +52,7 @@
 - [x] 科目管理页面
 - [x] 课程管理页面
 - [x] 学员管理页面
+- [x] 课包管理页面（按 Pack 模块 API 文档：list / detail / add / edit / remove）
 
 ### 组件开发
 - [x] 表格组件

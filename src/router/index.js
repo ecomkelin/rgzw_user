@@ -12,6 +12,7 @@
  *     ├─ subjects                   科目管理
  *     ├─ courses                    课程管理
  *     ├─ students                   学员管理
+ *     ├─ packs                      课包管理
  *     └─ analytics                  数据分析
  *   /                               重定向到 /layout/dashboard
  *   /:pathMatch(.*)*                兜底重定向到 dashboard
@@ -88,6 +89,12 @@ const routes = [
         path: 'students',
         name: 'Students',
         component: () => import('../views/students/Students.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'packs',
+        name: 'Packs',
+        component: () => import('../views/packs/Packs.vue'),
         meta: { requiresAuth: true }
       },
       {
