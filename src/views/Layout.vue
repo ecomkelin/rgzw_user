@@ -42,6 +42,7 @@
           <el-menu-item index="/layout/courses">课程管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
           <el-menu-item index="/layout/packs">课包管理</el-menu-item>
+          <el-menu-item index="/layout/orderPacks">课包订单</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
           <template #title>
@@ -103,6 +104,7 @@
           <el-menu-item index="/layout/courses">课程管理</el-menu-item>
           <el-menu-item index="/layout/students">学生列表</el-menu-item>
           <el-menu-item index="/layout/packs">课包管理</el-menu-item>
+          <el-menu-item index="/layout/orderPacks">课包订单</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/analysis">
           <template #title>
@@ -204,6 +206,7 @@ const pageTitle = computed(() => {
     '/layout/courses': '课程管理',
     '/layout/students': '学生列表',
     '/layout/packs': '课包管理',
+    '/layout/orderPacks': '课包订单管理',
     '/layout/analytics': '数据分析'
   }
   return routeMap[route.path] || '管理系统'

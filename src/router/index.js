@@ -98,6 +98,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'orderPacks',
+        name: 'OrderPacks',
+        component: () => import('../views/orderPacks/OrderPacks.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'analytics',
         name: 'Analytics',
         component: () => import('../views/Analytics.vue'),

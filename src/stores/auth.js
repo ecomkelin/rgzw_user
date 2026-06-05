@@ -191,10 +191,12 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         // 尝试使用需要认证的端点来验证token是否有效
-        // 后端 v7.x 的真实端点是 /api/user/self（无尾斜杠）
-        // 旧版请求的 `/api/user/self/` 走 404 旁路，被错误地当作「未授权」
+        // 关键：必须用 /api/account/self，因为 store.user 是 Account 对象
+        // （Login.vue 写入的 account 字段），前端多处代码读 user.isAdmin / user.accountType / user.currentUser
+        // 旧版用 /api/user/self 会把 store.user 覆盖成 User 对象，导致 isAdmin 变 undefined
+        // —— 表现是「登录时按钮在，刷新页面按钮消失」
         console.log('Making request to validate token...');
-        const response = await fetch('/api/user/self', {
+        const response = await fetch('/api/account/self', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
@@ -218,11 +220,13 @@ export const useAuthStore = defineStore('auth', {
           console.log('Token is valid, setting authenticated status');
           this.isAuthenticated = true
 
-          // 尝试获取用户信息（如果有的话）
+          // 尝试获取 Account 信息（注意：是 Account，不是 User）
+          // localStorage 里已有 Account；只有响应带回来的 Account 与本地不一致时才覆盖
+          // （例如改了 isAdmin / currentUser 等关键字段才需要重写）
           try {
             const result = await response.json()
             console.log('Response data:', result);
-            // /api/user/self 返回 { data: { item: User } }，统一写到 store
+            // /api/account/self 返回 { data: { item: Account } }
             const item = result?.data?.item || result?.data
             if (item) {
               this.setUser(item)

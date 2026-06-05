@@ -78,3 +78,29 @@ export const GENDER_MAP = Object.freeze(
   Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g]))
 )
 export const formatGenderEnum = (g) => GENDER_MAP[g]?.label ?? g ?? '-'
+
+/** 课包订单支付状态（OrderPack.payStatus） */
+export const PAY_STATUS_OPTIONS = Object.freeze([
+  { value: 'Pending',   label: '待支付',  tagType: 'warning' },
+  { value: 'Paid',      label: '已支付',  tagType: 'success' },
+  { value: 'Cancelled', label: '已取消',  tagType: 'info'    },
+  { value: 'Refunded',  label: '已退款',  tagType: 'danger'  }
+])
+export const PAY_STATUS_MAP = Object.freeze(
+  Object.fromEntries(PAY_STATUS_OPTIONS.map(s => [s.value, s]))
+)
+export const formatPayStatus = (s) => PAY_STATUS_MAP[s]?.label ?? s ?? '-'
+export const payStatusTagType = (s) => PAY_STATUS_MAP[s]?.tagType ?? 'info'
+
+/** 课包订单支付方式（OrderPack.payMethod） */
+export const PAY_METHOD_OPTIONS = Object.freeze([
+  { value: 'wechat',   label: '微信'   },
+  { value: 'alipay',   label: '支付宝' },
+  { value: 'cash',     label: '现金'   },
+  { value: 'card',     label: '刷卡'   },
+  { value: 'transfer', label: '转账'   }
+])
+export const PAY_METHOD_MAP = Object.freeze(
+  Object.fromEntries(PAY_METHOD_OPTIONS.map(m => [m.value, m]))
+)
+export const formatPayMethod = (m) => PAY_METHOD_MAP[m]?.label ?? m ?? '-'
