@@ -7,7 +7,8 @@ import {
   formatDateOnly,
   formatGender,
   formatAccountType,
-  formatActiveStatus
+  formatActiveStatus,
+  formatBirthdayAge
 } from './format'
 
 describe('formatDate', () => {
@@ -65,4 +66,20 @@ describe('formatAccountType', () => {
 describe('formatActiveStatus', () => {
   it('true -> 激活', () => expect(formatActiveStatus(true)).toBe('激活'))
   it('false -> 未激活', () => expect(formatActiveStatus(false)).toBe('未激活'))
+})
+
+describe('formatBirthdayAge', () => {
+  it('空值/非法返回 "-"', () => {
+    expect(formatBirthdayAge(null)).toBe('-')
+    expect(formatBirthdayAge('')).toBe('-')
+    expect(formatBirthdayAge('not-a-date')).toBe('-')
+  })
+
+  it('合法日期返回 "yyyy/... (xx岁)"', () => {
+    // 用本地 0 点构造，避免 UTC 切片
+    const d = new Date(2010, 0, 15) // 2010-01-15 本地时间
+    const out = formatBirthdayAge(d)
+    expect(out).toMatch(/^2010/)
+    expect(out).toMatch(/岁\)$/)
+  })
 })

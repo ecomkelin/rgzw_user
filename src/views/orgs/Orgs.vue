@@ -32,17 +32,19 @@
             <el-button @click="resetFilters">重置</el-button>
             <el-button type="success" @click="openCreateDialog">新增组织</el-button>
           </div>
-          </el-form-item>
+        </el-form-item>
       </el-form>
     </el-card>
 
     <el-card class="table-card">
       <el-table
-        :data="orgs"
+        :data="items"
         v-loading="loading"
         style="width: 100%"
         row-key="_id"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column prop="name" label="组织名称" width="200"></el-table-column>
         <el-table-column prop="nickname" label="组织简称" width="150"></el-table-column>
         <el-table-column prop="unionCode" label="统一社会信用代码" width="200"></el-table-column>
@@ -76,11 +78,43 @@
           <template #default="{ row }">
             <div class="table-actions">
               <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-              <el-button size="small" type="primary" @click="viewDetail(row)">查看</el-button>
+              <el-button size="small" type="primary" @click="openDetail(row)">查看</el-button>
             </div>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 批量操作工具栏（v8.0.2 新增：与 Rooms/Subjects 对齐） -->
+      <div class="batch-operation" v-if="selectedRows.length > 0">
+        <el-divider />
+        <div class="batch-toolbar">
+          <span class="selection-info">已选择 {{ selectedRows.length }} 项</span>
+          <div class="batch-buttons">
+            <el-button @click="onBatchActivate" type="success" size="small">批量激活</el-button>
+            <el-button @click="onBatchDeactivate" type="warning" size="small">批量禁用</el-button>
+            <el-button @click="onBatchMain(true)" type="primary" size="small">批量设为主机构</el-button>
+            <el-button @click="onBatchMain(false)" type="info" size="small">批量取消主机构</el-button>
+            <el-button @click="selectedRows = []" size="small">取消选择</el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 打印操作工具栏（v8.0.2 新增） -->
+      <div class="print-operation">
+        <el-divider />
+        <div class="print-toolbar">
+          <span class="print-info">打印功能</span>
+          <div class="print-buttons">
+            <el-button
+              @click="printTable(selectedRows)"
+              type="primary"
+              size="small"
+              :disabled="selectedRows.length === 0"
+            >打印选中项</el-button>
+            <el-button @click="printTable(items)" type="primary" size="small">打印全部数据</el-button>
+          </div>
+        </div>
+      </div>
 
       <el-pagination
         v-model:current-page="pagination.currentPage"
@@ -88,8 +122,8 @@
         :page-sizes="[10, 20, 50, 100]"
         :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        @size-change="onSizeChange"
+        @current-change="onPageChange"
         class="pagination"
       />
     </el-card>
@@ -166,28 +200,47 @@
         <el-button type="primary" @click="saveOrg" :loading="dialog.loading">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 详情对话框（v8.0.2 新增：替代 ElMessageBox.alert） -->
+    <DetailDialog
+      v-model="detailVisible"
+      title="组织详情"
+      :data="currentRow"
+      :rows="detailRows"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { orgService } from '../../api/org'
 import { formatDate, formatActiveStatus } from '../../utils/format'
+import { printTable as printTableUtil } from '../../utils/print'
+import {
+  buildListPayload,
+  appendExact,
+  appendBoolean,
+  appendRegExp
+} from '../../utils/listPayload'
+import { useListPage } from '../../composables/useListPage'
+import DetailDialog from '../../components/DetailDialog.vue'
 
-// 状态变量
-const orgs = ref([])
-const loading = ref(false)
-const orgFormRef = ref()
+/* ===== 列表 + 批量（统一来自 useListPage） ===== */
+const {
+  items,
+  loading,
+  selectedRows,
+  pagination,
+  fetchList,
+  handleSizeChange: onSizeChange,
+  handleCurrentChange: onPageChange,
+  handleSelectionChange,
+  batchUpdateField,
+  batchDeactivate
+} = useListPage()
 
-// 分页
-const pagination = reactive({
-  currentPage: 1,
-  pageSize: 10,
-  total: 0
-})
-
-// 筛选条件
+/* ===== 筛选条件 ===== */
 const filters = reactive({
   name: '',
   unionCode: '',
@@ -195,10 +248,32 @@ const filters = reactive({
   isMain: ''
 })
 
-// 对话框
+/* ===== 详情面板 ===== */
+const detailVisible = ref(false)
+const currentRow = ref({})
+const detailRows = [
+  { label: '组织名称',     field: 'name' },
+  { label: '组织简称',     field: 'nickname' },
+  { label: '统一社会信用代码', field: 'unionCode' },
+  { label: '是否主机构',   field: 'isMain', render: r => r.isMain ? '主机构' : '普通机构' },
+  { label: '状态',         field: 'isActive', render: r => formatActiveStatus(r.isActive) },
+  { label: '联系电话',     field: 'phone' },
+  { label: '联系邮箱',     field: 'email' },
+  { label: '网站',         field: 'website' },
+  { label: '地址',         field: 'address' },
+  { label: '排序',         field: 'sort' },
+  { label: '创建时间',     field: 'createdAt', render: r => formatDate(r.createdAt) },
+  { label: '最后更新时间', field: 'updatedAt', render: r => formatDate(r.updatedAt) }
+]
+const openDetail = (row) => {
+  currentRow.value = row
+  detailVisible.value = true
+}
+
+/* ===== 表单对话框 ===== */
 const dialog = reactive({
   visible: false,
-  mode: 'create', // 'create' 或 'edit'
+  mode: 'create',
   loading: false,
   form: {
     name: '',
@@ -237,67 +312,28 @@ const dialog = reactive({
     ]
   }
 })
+const orgFormRef = ref()
 
-// 获取组织列表
+/* ===== 列表拉取（v8.0.2 统一走 buildListPayload） ===== */
 const fetchOrgs = async () => {
-  loading.value = true
-  try {
-    const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
-    const options = {
-      limit: pagination.pageSize,
-      sort: { sort: -1, createdAt: -1 }, // 先按sort排序，再按创建时间排序
-    };
+  const filter = {}
+  // 后端 v7.x Org listVD 接受 `filter.regExp`（DAO 内部走 name/nickname 模糊）
+  // 旧的 $or 多字段正则会被 matchedData() 静默剔除。
+  appendRegExp(filter, filters.name)
+  appendExact(filter, 'unionCode', filters.unionCode)
+  appendBoolean(filter, 'isActive', filters.isActive)
+  appendBoolean(filter, 'isMain', filters.isMain)
 
-    // 只有当skipValue大于0时才添加skip参数，避免后端验证错误
-    if (skipValue > 0) {
-      options.skip = skipValue;
-    }
+  const payload = buildListPayload({
+    filter,
+    page: pagination.currentPage,
+    pageSize: pagination.pageSize,
+    sort: { sort: -1, createdAt: -1 }
+  })
 
-    // 构建查询条件
-    const filter = {};
-
-    // 名称搜索 —— 后端 v7.x Org listVD 仅接受字符串形式的 `filter.name`（精确匹配）
-    // 以及 `filter.regExp`（模糊匹配）。原 `$or` 多字段正则会被 matchedData() 静默剔除，
-    // 这里改为传 regExp（DAO 内部会做 name / nickname 的模糊搜索）。
-    if (filters.name) {
-      filter.regExp = filters.name;
-    }
-
-    // 统一代码精确匹配
-    if (filters.unionCode) {
-      filter.unionCode = filters.unionCode;
-    }
-
-    // 状态筛选
-    if (filters.isActive !== '' && filters.isActive !== null && filters.isActive !== undefined) {
-      filter.isActive = filters.isActive === 'true' || filters.isActive === true;
-    }
-
-    // 主机构筛选
-    if (filters.isMain !== '' && filters.isMain !== null && filters.isMain !== undefined) {
-      filter.isMain = filters.isMain === 'true' || filters.isMain === true;
-    }
-
-    const params = {
-      filter: filter,
-      options: options
-    }
-
-    const response = await orgService.getOrgs(params)
-    if (response.data.success) {
-      const { items, total } = response.data.data
-      orgs.value = items
-      pagination.total = total
-    }
-  } catch (error) {
-    console.error('获取组织列表失败:', error)
-    ElMessage.error('获取组织列表失败: ' + (error.response?.data?.message || error.message || '未知错误'))
-  } finally {
-    loading.value = false
-  }
+  await fetchList(orgService.getOrgs.bind(orgService), payload)
 }
 
-// 重置筛选条件
 const resetFilters = () => {
   filters.name = ''
   filters.unionCode = ''
@@ -307,23 +343,31 @@ const resetFilters = () => {
   fetchOrgs()
 }
 
-// 分页变化
-const handleSizeChange = (size) => {
-  pagination.pageSize = size
-  pagination.currentPage = 1
-  fetchOrgs()
-}
+/* ===== 批量操作（v8.0.2 新增） ===== */
+const onBatchActivate = () => batchUpdateField({
+  field: 'isActive',
+  value: true,
+  label: '激活',
+  apply: (ids, body) => Promise.allSettled(ids.map(id => orgService.updateOrg(id, body))),
+  onComplete: fetchOrgs
+})
+const onBatchDeactivate = () => batchDeactivate({
+  label: '禁用',
+  apply: (ids) => Promise.allSettled(ids.map(id => orgService.updateOrg(id, { isActive: false }))),
+  onComplete: fetchOrgs
+})
+const onBatchMain = (val) => batchUpdateField({
+  field: 'isMain',
+  value: val,
+  label: val ? '设为主机构' : '取消主机构',
+  apply: (ids, body) => Promise.allSettled(ids.map(id => orgService.updateOrg(id, body))),
+  onComplete: fetchOrgs
+})
 
-const handleCurrentChange = (page) => {
-  pagination.currentPage = page
-  fetchOrgs()
-}
-
-// 打开创建对话框
+/* ===== 打开/保存 ===== */
 const openCreateDialog = () => {
   dialog.mode = 'create'
   dialog.visible = true
-  // 重置表单
   Object.assign(dialog.form, {
     name: '',
     nickname: '',
@@ -337,12 +381,9 @@ const openCreateDialog = () => {
     sort: 0
   })
 }
-
-// 打开编辑对话框
 const openEditDialog = (row) => {
   dialog.mode = 'edit'
   dialog.visible = true
-  // 填充表单数据
   Object.assign(dialog.form, {
     _id: row._id,
     name: row.name || '',
@@ -358,210 +399,74 @@ const openEditDialog = (row) => {
   })
 }
 
-// 查看详情
-const viewDetail = (row) => {
-  ElMessageBox.alert(`
-    <div><strong>组织名称:</strong> ${row.name || '-'}</div>
-    <div><strong>组织简称:</strong> ${row.nickname || '-'}</div>
-    <div><strong>统一社会信用代码:</strong> ${row.unionCode || '-'}</div>
-    <div><strong>是否主机构:</strong> <span style="font-weight:bold; color:orange;">${row.isMain ? '主机构' : '普通机构'}</span></div>
-    <div><strong>状态:</strong> ${formatActiveStatus(row.isActive)}</div>
-    <div><strong>联系电话:</strong> ${row.phone || '-'}</div>
-    <div><strong>联系邮箱:</strong> ${row.email || '-'}</div>
-    <div><strong>网站:</strong> ${row.website || '-'}</div>
-    <div><strong>地址:</strong> ${row.address || '-'}</div>
-    <div><strong>民族:</strong> ${row.Nation || '-'}</div>
-    <div><strong>省/市:</strong> ${row.Province || '-'}</div>
-    <div><strong>城市:</strong> ${row.City || '-'}</div>
-    <div><strong>区/县:</strong> ${row.Area || '-'}</div>
-    <div><strong>排序:</strong> ${row.sort || 0}</div>
-    <div><strong>创建时间:</strong> ${formatDate(row.createdAt)}</div>
-    <div><strong>最后更新时间:</strong> ${formatDate(row.updatedAt)}</div>
-  `, '组织详情', {
-    dangerouslyUseHTMLString: true,
-    confirmButtonText: '确定'
-  })
-}
-
-// 保存组织
-const saveOrg = async () => {
-  if (!orgFormRef.value) return
-
-  await orgFormRef.value.validate(async (valid) => {
-    if (valid) {
-      dialog.loading = true
-      try {
-        if (dialog.mode === 'create') {
-          const orgData = {
-            name: dialog.form.name,
-            nickname: dialog.form.nickname,
-            unionCode: dialog.form.unionCode
-          };
-
-          // 只有当字段有值时才添加到请求数据中
-          if (dialog.form.phone && dialog.form.phone.trim() !== '') {
-            // 验证电话长度 (最多20个字符)
-            if (dialog.form.phone.length > 20) {
-              ElMessage.error('电话长度不能超过20个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.phone = dialog.form.phone
-          }
-
-          if (dialog.form.email && dialog.form.email.trim() !== '') {
-            // 验证邮箱长度 (最多100个字符)
-            if (dialog.form.email.length > 100) {
-              ElMessage.error('邮箱长度不能超过100个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.email = dialog.form.email
-          }
-
-          if (dialog.form.website && dialog.form.website.trim() !== '') {
-            // 验证网站长度 (最多200个字符)
-            if (dialog.form.website.length > 200) {
-              ElMessage.error('网站长度不能超过200个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.website = dialog.form.website
-          }
-
-          if (dialog.form.address && dialog.form.address.trim() !== '') {
-            // 验证地址长度 (最多200个字符)
-            if (dialog.form.address.length > 200) {
-              ElMessage.error('地址长度不能超过200个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.address = dialog.form.address
-          }
-
-          orgData.isMain = dialog.form.isMain;
-          orgData.isActive = dialog.form.isActive;
-
-          if (dialog.form.sort !== undefined && dialog.form.sort !== null) {
-            orgData.sort = dialog.form.sort
-          }
-
-          const response = await orgService.createOrg(orgData)
-
-          if (response.data.success) {
-            ElMessage.success('创建组织成功')
-            dialog.visible = false
-            fetchOrgs()
-          } else {
-            ElMessage.error(response.data.message || '创建组织失败')
-          }
-        } else {
-          const orgData = {};
-
-          // 只有当字段有值时才添加到请求数据中
-          if (dialog.form.name && dialog.form.name.trim() !== '') {
-            // 验证名称长度 (2-100)
-            if (dialog.form.name.length < 2 || dialog.form.name.length > 100) {
-              ElMessage.error('组织名称长度应在2-100个字符之间')
-              dialog.loading = false
-              return
-            }
-            orgData.name = dialog.form.name
-          }
-
-          if (dialog.form.nickname && dialog.form.nickname.trim() !== '') {
-            // 验证简称长度 (1-50)
-            if (dialog.form.nickname.length < 1 || dialog.form.nickname.length > 50) {
-              ElMessage.error('组织简称长度应在1-50个字符之间')
-              dialog.loading = false
-              return
-            }
-            orgData.nickname = dialog.form.nickname
-          }
-
-          if (dialog.form.unionCode && dialog.form.unionCode.trim() !== '') {
-            // 验证统一代码长度 (2-30)
-            if (dialog.form.unionCode.length < 2 || dialog.form.unionCode.length > 30) {
-              ElMessage.error('统一社会信用代码长度应在2-30个字符之间')
-              dialog.loading = false
-              return
-            }
-            orgData.unionCode = dialog.form.unionCode
-          }
-
-          if (dialog.form.phone && dialog.form.phone.trim() !== '') {
-            // 验证电话长度 (最多20个字符)
-            if (dialog.form.phone.length > 20) {
-              ElMessage.error('电话长度不能超过20个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.phone = dialog.form.phone
-          }
-
-          if (dialog.form.email && dialog.form.email.trim() !== '') {
-            // 验证邮箱长度 (最多100个字符)
-            if (dialog.form.email.length > 100) {
-              ElMessage.error('邮箱长度不能超过100个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.email = dialog.form.email
-          }
-
-          if (dialog.form.website && dialog.form.website.trim() !== '') {
-            // 验证网站长度 (最多200个字符)
-            if (dialog.form.website.length > 200) {
-              ElMessage.error('网站长度不能超过200个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.website = dialog.form.website
-          }
-
-          if (dialog.form.address && dialog.form.address.trim() !== '') {
-            // 验证地址长度 (最多200个字符)
-            if (dialog.form.address.length > 200) {
-              ElMessage.error('地址长度不能超过200个字符')
-              dialog.loading = false
-              return
-            }
-            orgData.address = dialog.form.address
-          }
-
-          orgData.isMain = dialog.form.isMain;
-          orgData.isActive = dialog.form.isActive;
-
-          if (dialog.form.sort !== undefined && dialog.form.sort !== null) {
-            orgData.sort = dialog.form.sort
-          }
-
-          const response = await orgService.updateOrg(dialog.form._id, orgData)
-
-          if (response.data.success) {
-            ElMessage.success('更新组织成功')
-            dialog.visible = false
-            fetchOrgs()
-          } else {
-            ElMessage.error(response.data.message || '更新组织失败')
-          }
-        }
-      } catch (error) {
-        console.error('保存组织失败:', error)
-        ElMessage.error(error.response?.data?.message || '保存组织失败')
-      } finally {
-        dialog.loading = false
-      }
-    }
-  })
-}
-
-// 关闭对话框
 const closeDialog = () => {
   dialog.visible = false
-  if (orgFormRef.value) {
-    orgFormRef.value.clearValidate()
+  if (orgFormRef.value) orgFormRef.value.clearValidate()
+}
+
+// pickDefined: 过滤 undefined / null / 空字符串字段，匹配后端 matchedData() 的白名单语义
+const pickDefined = (obj) => Object.fromEntries(
+  Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+)
+
+const saveOrg = async () => {
+  if (!orgFormRef.value) return
+  let valid = false
+  try {
+    valid = await orgFormRef.value.validate().catch(() => false)
+  } catch (_) { valid = false }
+  if (!valid) return
+
+  dialog.loading = true
+  try {
+    const baseData = pickDefined({
+      name: dialog.form.name,
+      nickname: dialog.form.nickname,
+      unionCode: dialog.form.unionCode,
+      phone: dialog.form.phone,
+      email: dialog.form.email,
+      website: dialog.form.website,
+      address: dialog.form.address,
+      isMain: dialog.form.isMain,
+      isActive: dialog.form.isActive,
+      sort: dialog.form.sort
+    })
+
+    const response = dialog.mode === 'create'
+      ? await orgService.createOrg(baseData)
+      : await orgService.updateOrg(dialog.form._id, baseData)
+
+    if (response.data.success) {
+      ElMessage.success(dialog.mode === 'create' ? '创建组织成功' : '更新组织成功')
+      dialog.visible = false
+      fetchOrgs()
+    } else {
+      ElMessage.error(response.data.message || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存组织失败:', error)
+    ElMessage.error(error.response?.data?.message || error.message || '保存组织失败')
+  } finally {
+    dialog.loading = false
   }
+}
+
+/* ===== 打印 ===== */
+const printTable = (data) => {
+  const columns = [
+    { prop: 'name',      label: '组织名称' },
+    { prop: 'nickname',  label: '组织简称' },
+    { prop: 'unionCode', label: '统一社会信用代码' },
+    { prop: 'isMain',    label: '是否主机构', formatter: r => r.isMain ? '主机构' : '普通机构' },
+    { prop: 'isActive',  label: '状态', formatter: r => formatActiveStatus(r.isActive) },
+    { prop: 'phone',     label: '联系电话' },
+    { prop: 'email',     label: '联系邮箱' },
+    { prop: 'website',   label: '网站' },
+    { prop: 'address',   label: '地址' },
+    { prop: 'sort',      label: '排序', formatter: r => r.sort || 0 },
+    { prop: 'createdAt', label: '创建时间', formatter: r => formatDate(r.createdAt) }
+  ]
+  printTableUtil(data, columns, '组织管理数据报表')
 }
 
 onMounted(() => {
@@ -606,5 +511,31 @@ onMounted(() => {
 .main-org {
   font-weight: bold;
   color: orange;
+}
+
+/* v8.0.2 批量 / 打印工具栏（与 Rooms/Subjects 对齐） */
+.batch-operation,
+.print-operation {
+  margin-top: 16px;
+}
+.batch-toolbar,
+.print-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+.selection-info,
+.print-info {
+  font-weight: 500;
+  color: #606266;
+}
+.batch-buttons,
+.print-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 </style>

@@ -1,5 +1,28 @@
 # 版本更新日志
 
+## v8.0.2
+- **页面体检 + 模板统一**（参见 [doc/PAGE_REVIEW.md](./doc/PAGE_REVIEW.md)）：
+  - 新增 `utils/listPayload.js`：`buildListPayload / appendExact / appendBoolean / appendRegExp / appendDateRange / unwrapListResponse / APP_DEFAULT_POPULATE` —— 7 个 CRUD 页面不再手搓 filter
+  - 新增 `utils/enums.js`：`ROOM_STATUS / SUBJECT_CATEGORIES / ACCOUNT_TYPES / USER_ROLES / GENDER_OPTIONS` + 各自的 `formatXxx` / `xxxTagType`
+  - 新增 `composables/useListPage.js`：分页 / 选中 / 批量三件套（`batchUpdateField` / `batchDeactivate`）
+  - 新增 `components/DetailDialog.vue`：替代散落的 `ElMessageBox.alert + dangerouslyUseHTMLString`，XSS 安全
+- **4 个落后页面已按统一模板重写**：
+  - `Orgs.vue`：新增批量操作（激活 / 禁用 / 主机构切换）+ 打印工具栏 + `DetailDialog` + `listPayload`
+  - `Students.vue`：高级搜索的 `$or` 全部收敛到 `regExp`；`calculateAge` 抽到 `format.js#formatBirthdayAge`；编辑模式下表单不再有"学校"重复字段
+  - `Users.vue`：移除 `console.log` 残留；`saveUser` 用 `pickDefined` 统一 body 构造；详情改 `DetailDialog`
+  - `Accounts.vue`：行展开的关联加载逻辑保留；`viewDetail` 改 `DetailDialog`；`saveAccount` 改 `pickDefined`；新增用户/学生对话框改名为 `saveRelatedUser/Student` 与 `saveUser` 区分
+- **util 测试**：
+  - 新增 `utils/enums.test.js`（24 个 case）
+  - 新增 `utils/listPayload.test.js`（17 个 case）
+  - `utils/format.test.js` 增补 `formatBirthdayAge`（2 个 case）
+  - 测试总数：61 → 105
+- **文档重写 / 同步**：
+  - 重写 [doc/DEVELOPMENT_STANDARD.md](./doc/DEVELOPMENT_STANDARD.md)：基于现有代码真实状态，新增「§1 新增页面 checklist」作为强制流程
+  - 重写 [doc/FRONTEND_API.md](./doc/FRONTEND_API.md)：补「listVD 字段白名单」表 + utils/composable 章节
+  - 更新 [doc/PAGE_STRUCTURE.md](./doc/PAGE_STRUCTURE.md)：新增 4 节公共工具介绍 + 修正 API 端点
+  - 新增 [doc/PAGE_REVIEW.md](./doc/PAGE_REVIEW.md)：7 个页面的体检报告
+- **构建**：`pnpm build` 通过；7 个页 chunk size 都比 v8.0.1 缩水（删了 7 份重复 if-链）
+
 ## v8.0.1
 - 与后端 v8.x 同步：
   - 修复 `/api/auth/logout` 走 GET 的问题，改为 POST（与后端路由对齐）

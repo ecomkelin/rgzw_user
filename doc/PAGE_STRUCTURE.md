@@ -239,46 +239,59 @@
 
 ## API 接口结构
 
+> 完整契约、字段白名单、入参/出参详见 [FRONTEND_API.md](./FRONTEND_API.md)。
+> 本节只列出各模块的端点速查。
+
 ### 认证相关
 - `POST /api/auth/login` - 用户登录
-- `GET /api/auth/logout` - 用户登出
+- `POST /api/auth/logout` - 用户登出（v8.0.1 起改 POST）
 - `GET /api/auth/refresh-token` - 刷新令牌
 
+### 账户相关
+- `POST /api/account/list` - 账户列表
+- `POST /api/account/detail/:id` - 账户详情
+- `POST /api/account/add` - 添加账户
+- `POST /api/account/edit/:id` - 编辑账户
+- `POST /api/account/self` - 当前登录账户
+- `POST /api/account/edit/self` - 修改当前登录账户
+
 ### 用户相关
-- `POST /api/user/self/` - 获取当前用户信息
-- `POST /api/user/list/` - 获取用户列表
-- `POST /api/user/add/` - 添加用户
+- `POST /api/user/list` - 用户列表
+- `POST /api/user/detail/:id` - 用户详情
+- `POST /api/user/add` - 添加用户
 - `POST /api/user/edit/:id` - 编辑用户
-- `POST /api/user/detail/:id` - 获取用户详情
+- `POST /api/user/self` - 当前用户信息
 
 ### 学员相关
-- `POST /api/student/list/` - 获取学员列表
-- `POST /api/student/detail/:id` - 获取学员详情
-- `POST /api/student/add/` - 添加学员
+- `POST /api/student/list` - 学员列表
+- `POST /api/student/detail/:id` - 学员详情
+- `POST /api/student/add` - 添加学员
 - `POST /api/student/edit/:id` - 编辑学员
 
-### 教室相关
-- `POST /api/room/list/` - 获取教室列表
-- `POST /api/room/detail/:id` - 获取教室详情
-- `POST /api/room/add/` - 添加教室
+### 教室相关（v7.x 暂未开放 /remove/:id，走软删除）
+- `POST /api/room/list` - 教室列表
+- `POST /api/room/detail/:id` - 教室详情
+- `POST /api/room/add` - 添加教室
 - `POST /api/room/edit/:id` - 编辑教室
-- `POST /api/room/remove/:id` - 删除教室
 
-### 科目相关
-- `POST /api/subject/list/` - 获取科目列表
-- `POST /api/subject/detail/:id` - 获取科目详情
-- `POST /api/subject/add/` - 添加科目
+### 科目相关（同 Room，软删除）
+- `POST /api/subject/list` - 科目列表
+- `POST /api/subject/detail/:id` - 科目详情
+- `POST /api/subject/add` - 添加科目
 - `POST /api/subject/edit/:id` - 编辑科目
 
-### 课程相关
-- `POST /api/course/list/` - 获取课程列表
-- `POST /api/course/detail/:id` - 获取课程详情
-- `POST /api/course/add/` - 添加课程
+### 课程相关（多租户 Org 范围控制，详见 COURSE_ORG_SCOPING.md）
+- `POST /api/course/list` - 课程列表
+- `POST /api/course/detail/:id` - 课程详情
+- `POST /api/course/add` - 添加课程
 - `POST /api/course/edit/:id` - 编辑课程
 
-### 其他管理接口
-- `POST /api/account/` - 账户相关
-- `POST /api/org/` - 组织相关
+### 组织相关
+- `POST /api/org/list` - 组织列表
+- `POST /api/org/detail/:id` - 组织详情
+- `POST /api/org/add` - 添加组织
+- `POST /api/org/edit/:id` - 编辑组织
+- `POST /api/org/self` - 当前用户所属组织
 
 ## 权限控制
 
@@ -332,3 +345,29 @@
 - **可复用**: AdvancedSearch.vue 可用于不同页面
 - **配置化**: 支持不同页面的搜索字段配置
 - **统一体验**: 提供一致的高级搜索界面
+
+### 通用详情对话框（v8.0.2 新增）
+- **组件**: `components/DetailDialog.vue`
+- **替代**: 散落在各页面的 `ElMessageBox.alert + dangerouslyUseHTMLString`
+- **优点**: XSS 安全、可读、支持点号路径（如 `Org.name`）
+
+### 列表页公共逻辑（v8.0.2 新增）
+- **Composable**: `composables/useListPage.js`
+- **职责**: 分页、loading、selectedRows、`handleSizeChange` / `handleCurrentChange` / `handleSelectionChange`、`batchUpdateField` / `batchDeactivate`
+- **7 个 CRUD 页面**全部从它解耦
+
+### listVD 参数构造（v8.0.2 新增）
+- **工具**: `utils/listPayload.js`
+- **helper**: `buildListPayload / appendExact / appendBoolean / appendRegExp / appendDateRange / unwrapListResponse`
+- **禁止**: 在 .vue 里手搓 `filter.$or` / `filter.x.$regex`（会被后端 `matchedData()` 静默剔除）
+
+### 业务枚举（v8.0.2 新增）
+- **文件**: `utils/enums.js`
+- **覆盖**: ROOM_STATUS / SUBJECT_CATEGORIES / ACCOUNT_TYPES / USER_ROLES / GENDER_OPTIONS
+- **每个枚举**: `{ value, label, tagType? }`，配 `formatXxx` / `xxxTagType` 函数
+
+## 开发约定（详见 DEVELOPMENT_STANDARD.md）
+
+- 7 个 CRUD 页（Rooms / Subjects / Courses / Orgs / Users / Students / Accounts）已经按统一模板重写
+- 任何新增页面 / 大改页面**必须**先读 `doc/DEVELOPMENT_STANDARD.md` 的「§1 新增页面 checklist」
+- 后端字段白名单详见 `doc/FRONTEND_API.md` 的「listVD 字段白名单」表

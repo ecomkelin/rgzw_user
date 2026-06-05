@@ -17,8 +17,7 @@
 
         <el-form-item label="角色">
           <el-select v-model="filters.role" placeholder="请选择角色" clearable style="width: 150px;">
-            <el-option label="管理者" value="manager"></el-option>
-            <el-option label="老师" value="teacher"></el-option>
+            <el-option v-for="opt in USER_ROLES" :key="opt.value" :label="opt.label" :value="opt.value"></el-option>
           </el-select>
         </el-form-item>
 
@@ -37,12 +36,11 @@
       </el-form>
     </el-card>
 
-    <!-- 高级搜索组件 -->
     <AdvancedSearch @search="handleAdvancedSearch" @reset="handleAdvancedReset" />
 
     <el-card class="table-card">
       <el-table
-        :data="users"
+        :data="items"
         v-loading="loading"
         style="width: 100%"
         row-key="_id"
@@ -54,7 +52,11 @@
         <el-table-column prop="Account.email" label="邮箱" width="200"></el-table-column>
         <el-table-column prop="Account.identityNo" label="身份证号" width="180"></el-table-column>
         <el-table-column prop="nickname" label="昵称" width="120"></el-table-column>
-        <el-table-column prop="roleTemp" label="角色" width="120"></el-table-column>
+        <el-table-column prop="roleTemp" label="角色" width="120">
+          <template #default="{ row }">
+            {{ formatUserRole(row.roleTemp) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="Org.name" label="所属组织" width="150"></el-table-column>
         <el-table-column prop="isActive" label="状态" width="100">
           <template #default="{ row }">
@@ -77,7 +79,7 @@
           <template #default="{ row }">
             <div class="table-actions">
               <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
-              <el-button size="small" type="primary" @click="viewDetail(row)">查看</el-button>
+              <el-button size="small" type="primary" @click="openDetail(row)">查看</el-button>
             </div>
           </template>
         </el-table-column>
@@ -89,18 +91,9 @@
         <div class="batch-toolbar">
           <span class="selection-info">已选择 {{ selectedRows.length }} 项</span>
           <div class="batch-buttons">
-            <el-button @click="batchUpdateStatus(true)" type="success" size="small">
-              批量激活
-            </el-button>
-            <el-button @click="batchUpdateStatus(false)" type="warning" size="small">
-              批量禁用
-            </el-button>
-            <el-button @click="batchDelete" type="danger" size="small">
-              批量删除
-            </el-button>
-            <el-button @click="selectedRows = []" size="small">
-              取消选择
-            </el-button>
+            <el-button @click="onBatchActivate" type="success" size="small">批量激活</el-button>
+            <el-button @click="onBatchDeactivate" type="warning" size="small">批量禁用</el-button>
+            <el-button @click="selectedRows = []" size="small">取消选择</el-button>
           </div>
         </div>
       </div>
@@ -114,9 +107,7 @@
             <el-button @click="printTable(selectedRows)" type="primary" size="small" :disabled="selectedRows.length === 0">
               打印选中项
             </el-button>
-            <el-button @click="printTable(users)" type="primary" size="small">
-              打印全部数据
-            </el-button>
+            <el-button @click="printTable(items)" type="primary" size="small">打印全部数据</el-button>
           </div>
         </div>
       </div>
@@ -127,8 +118,8 @@
         :page-sizes="[10, 20, 50, 100]"
         :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        @size-change="onSizeChange"
+        @current-change="onPageChange"
         class="pagination"
       />
     </el-card>
@@ -154,8 +145,7 @@
 
             <el-form-item label="角色" prop="roleTemp">
               <el-select v-model="dialog.form.roleTemp" placeholder="请选择角色" style="width: 100%">
-                <el-option label="管理者" value="manager"></el-option>
-                <el-option label="老师" value="teacher"></el-option>
+                <el-option v-for="opt in USER_ROLES" :key="opt.value" :label="opt.label" :value="opt.value"></el-option>
               </el-select>
             </el-form-item>
 
@@ -164,21 +154,12 @@
             </el-form-item>
 
             <el-form-item label="状态" prop="isActive">
-              <el-switch
-                v-model="dialog.form.isActive"
-                active-text="激活"
-                inactive-text="未激活"
-              ></el-switch>
+              <el-switch v-model="dialog.form.isActive" active-text="激活" inactive-text="未激活"></el-switch>
             </el-form-item>
 
             <el-form-item label="所属组织" prop="orgId">
               <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit'" placeholder="请选择组织" style="width: 100%">
-                <el-option
-                  v-for="org in orgOptions"
-                  :key="org._id"
-                  :label="org.name"
-                  :value="org._id">
-                </el-option>
+                <el-option v-for="org in orgOptions" :key="org._id" :label="org.name" :value="org._id"></el-option>
               </el-select>
             </el-form-item>
           </el-tab-pane>
@@ -187,56 +168,41 @@
             <el-form-item label="选择现有账户">
               <el-select v-model="dialog.form.selectedAccount" placeholder="请选择现有账户" style="width: 100%" clearable filterable @change="onAccountSelect">
                 <el-option
-                  v-for="account in availableAccounts.filter(acc => acc.accountType === 'User')"
-                  :key="account._id"
-                  :label="`${account.code} (${account.name})`"
-                  :value="account._id">
+                  v-for="acc in availableAccounts"
+                  :key="acc._id"
+                  :label="`${acc.code} (${acc.name})`"
+                  :value="acc._id">
                 </el-option>
               </el-select>
             </el-form-item>
 
             <div v-if="!dialog.form.selectedAccount">
               <el-form-item label="账户名称" prop="accountCode">
-                <el-input
-                  v-model="dialog.form.accountCode"
-                  placeholder="请输入账户名称"
-                ></el-input>
+                <el-input v-model="dialog.form.accountCode" placeholder="请输入账户名称"></el-input>
               </el-form-item>
-
               <el-form-item label="真实姓名" prop="accountName">
                 <el-input v-model="dialog.form.accountName" placeholder="请输入真实姓名"></el-input>
               </el-form-item>
-
               <el-form-item label="手机号" prop="accountPhone">
                 <el-input v-model="dialog.form.accountPhone" placeholder="请输入手机号"></el-input>
               </el-form-item>
-
               <el-form-item label="邮箱" prop="accountEmail">
                 <el-input v-model="dialog.form.accountEmail" placeholder="请输入邮箱"></el-input>
               </el-form-item>
-
               <el-form-item label="性别" prop="accountGender">
                 <el-radio-group v-model="dialog.form.accountGender">
                   <el-radio label="male">男</el-radio>
                   <el-radio label="female">女</el-radio>
                 </el-radio-group>
               </el-form-item>
-
               <el-form-item label="身份证号" prop="accountIdentityNo">
                 <el-input v-model="dialog.form.accountIdentityNo" placeholder="请输入身份证号"></el-input>
               </el-form-item>
-
               <el-form-item label="地址" prop="accountAddress">
                 <el-input v-model="dialog.form.accountAddress" placeholder="请输入地址"></el-input>
               </el-form-item>
-
               <el-form-item label="密码" prop="accountPassword">
-                <el-input
-                  v-model="dialog.form.accountPassword"
-                  type="password"
-                  placeholder="请输入密码"
-                  show-password
-                ></el-input>
+                <el-input v-model="dialog.form.accountPassword" type="password" placeholder="请输入密码" show-password></el-input>
               </el-form-item>
             </div>
             <div v-else>
@@ -245,29 +211,30 @@
           </el-tab-pane>
         </el-tabs>
 
-        <!-- 编辑模式下只有用户信息，没有账户信息标签 -->
+        <!-- 编辑模式：只有用户信息 -->
         <div v-else>
           <el-form-item label="昵称" prop="nickname">
             <el-input v-model="dialog.form.nickname" placeholder="请输入昵称"></el-input>
           </el-form-item>
-
           <el-form-item label="角色" prop="roleTemp">
             <el-select v-model="dialog.form.roleTemp" placeholder="请选择角色" style="width: 100%">
-              <el-option label="管理者" value="manager"></el-option>
-              <el-option label="老师" value="teacher"></el-option>
+              <el-option v-for="opt in USER_ROLES" :key="opt.value" :label="opt.label" :value="opt.value"></el-option>
             </el-select>
           </el-form-item>
-
           <el-form-item label="排序" prop="sort">
             <el-input-number v-model="dialog.form.sort" :min="0" placeholder="排序值，越大越靠前"></el-input-number>
           </el-form-item>
-
           <el-form-item label="状态" prop="isActive">
-            <el-switch
-              v-model="dialog.form.isActive"
-              active-text="激活"
-              inactive-text="未激活"
-            ></el-switch>
+            <el-switch v-model="dialog.form.isActive" active-text="激活" inactive-text="未激活"></el-switch>
+          </el-form-item>
+          <el-form-item label="所属组织" prop="orgId">
+            <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit'" placeholder="请选择组织" style="width: 100%">
+              <el-option v-for="org in orgOptions" :key="org._id" :label="org.name" :value="org._id"></el-option>
+            </el-select>
+          </el-form-item>
+          <!-- 编辑时只读展示关联账户 -->
+          <el-form-item label="关联账户">
+            <el-input :value="`${dialog.form.accountCode || '-'} (${dialog.form.accountName || '-'})`" disabled></el-input>
           </el-form-item>
         </div>
       </el-form>
@@ -277,28 +244,52 @@
         <el-button type="primary" @click="saveUser" :loading="dialog.loading">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 详情对话框（v8.0.2：替代 ElMessageBox.alert） -->
+    <DetailDialog
+      v-model="detailVisible"
+      title="用户详情"
+      :data="currentRow"
+      :rows="detailRows"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, onMounted, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
 import { userService } from '../../api/user'
-import { orgService } from '../../api/org'  // 导入组织服务
-import { accountService } from '../../api/account'  // 导入账户服务
+import { orgService } from '../../api/org'
+import { accountService } from '../../api/account'
 import { formatDate, formatActiveStatus } from '../../utils/format'
 import { printTable as printTableUtil } from '../../utils/print'
+import {
+  buildListPayload,
+  appendExact,
+  appendBoolean,
+  appendRegExp,
+  appendDateRange
+} from '../../utils/listPayload'
+import { USER_ROLES, formatUserRole } from '../../utils/enums'
+import { useListPage } from '../../composables/useListPage'
+import DetailDialog from '../../components/DetailDialog.vue'
 import AdvancedSearch from '../../components/AdvancedSearch.vue'
 
-// 状态变量
-const users = ref([])
-const loading = ref(false)
-const userFormRef = ref()
-const selectedRows = ref([]) // 批量操作选中的行
-const orgOptions = ref([])  // 组织选项
-const availableAccounts = ref([]) // 可用账户选项
+/* ===== 列表 + 批量 ===== */
+const {
+  items,
+  loading,
+  selectedRows,
+  pagination,
+  fetchList,
+  handleSizeChange: onSizeChange,
+  handleCurrentChange: onPageChange,
+  handleSelectionChange,
+  batchUpdateField,
+  batchDeactivate
+} = useListPage()
 
-// 高级搜索参数
+/* ===== 高级搜索 ===== */
 const advancedFilters = ref({
   keyword: '',
   dateRange: [],
@@ -307,45 +298,72 @@ const advancedFilters = ref({
   org: ''
 })
 
-// 分页
-const pagination = reactive({
-  currentPage: 1,
-  pageSize: 10,
-  total: 0
-})
-
-// 筛选条件
+/* ===== 基础筛选 ===== */
 const filters = reactive({
   org: '',
   role: '',
   isActive: ''
 })
 
-// 对话框
+/* ===== 关联资源 ===== */
+const orgOptions = ref([])
+const availableAccounts = ref([])
+
+const fetchOrgs = async () => {
+  try {
+    const resp = await orgService.getOrgs({
+      filter: {},
+      options: { limit: 1000 }
+    })
+    if (resp.data.success) orgOptions.value = resp.data.data.items || []
+  } catch (e) {
+    console.error('获取组织列表失败:', e)
+  }
+}
+const fetchAccounts = async () => {
+  try {
+    const resp = await accountService.getAccounts({
+      filter: { isActive: true, accountType: 'User' },
+      options: { limit: 1000 }
+    })
+    if (resp.data.success) availableAccounts.value = resp.data.data.items || []
+  } catch (e) {
+    console.error('获取账户列表失败:', e)
+  }
+}
+
+/* ===== 详情面板 ===== */
+const detailVisible = ref(false)
+const currentRow = ref({})
+const detailRows = [
+  { label: '真实姓名',   field: 'Account.name' },
+  { label: '昵称',       field: 'nickname' },
+  { label: '手机号',     field: 'Account.phone' },
+  { label: '邮箱',       field: 'Account.email' },
+  { label: '身份证号',   field: 'Account.identityNo' },
+  { label: '角色',       field: 'roleTemp', render: r => formatUserRole(r.roleTemp) },
+  { label: '所属组织',   field: 'Org.name' },
+  { label: '排序',       field: 'sort' },
+  { label: '状态',       field: 'isActive', render: r => formatActiveStatus(r.isActive) },
+  { label: '创建时间',   field: 'createdAt', render: r => formatDate(r.createdAt) },
+  { label: '最后更新时间', field: 'updatedAt', render: r => formatDate(r.updatedAt) }
+]
+const openDetail = (row) => {
+  currentRow.value = row
+  detailVisible.value = true
+}
+
+/* ===== 表单对话框 ===== */
 const dialog = reactive({
   visible: false,
-  mode: 'create', // 'create' 或 'edit'
+  mode: 'create',
   activeTab: 'user',
   loading: false,
   form: {
-    // 用户信息
-    nickname: '',
-    roleTemp: 'teacher', // 改为小写
-    sort: 0,
-    isActive: true,
-    orgId: '',
-
-    // 选择现有账户
+    nickname: '', roleTemp: 'teacher', sort: 0, isActive: true, orgId: '',
     selectedAccount: '',
-
-    // 账户信息
-    accountCode: '',
-    accountName: '',
-    accountPhone: '',
-    accountEmail: '',
-    accountGender: 'male', // 改为小写
-    accountIdentityNo: '',
-    accountAddress: '',
+    accountCode: '', accountName: '', accountPhone: '', accountEmail: '',
+    accountGender: 'male', accountIdentityNo: '', accountAddress: '',
     accountPassword: ''
   },
   rules: {
@@ -364,199 +382,68 @@ const dialog = reactive({
       { required: true, message: '请输入真实姓名', trigger: 'blur' },
       { min: 2, max: 50, message: '真实姓名长度应在2-50个字符之间', trigger: 'blur' }
     ],
+    accountEmail: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
     accountPassword: [
       { required: true, message: '请输入密码', trigger: 'blur' },
       { min: 8, max: 16, message: '密码长度应在8-16个字符之间', trigger: 'blur' }
     ]
   }
 })
+const userFormRef = ref()
 
-// 获取组织列表
-const fetchOrgs = async () => {
-  try {
-    const response = await orgService.getOrgs({
-      filter: {},
-      options: {
-        limit: 1000  // 获取所有组织
-      }
-    })
-    if (response.data.success) {
-      orgOptions.value = response.data.data.items
-    }
-  } catch (error) {
-    console.error('获取组织列表失败:', error)
-    ElMessage.error('获取组织列表失败: ' + (error.response?.data?.message || error.message || '未知错误'))
-  }
-}
-
-// 获取账户列表
-const fetchAccounts = async () => {
-  try {
-    const response = await accountService.getAccounts({
-      filter: {
-        isActive: true,
-        accountType: 'User' // 只获取账户类型为User的账户
-      },
-      options: {
-        limit: 1000  // 获取所有激活账户
-      }
-    })
-    if (response.data.success) {
-      availableAccounts.value = response.data.data.items
-    }
-  } catch (error) {
-    console.error('获取账户列表失败:', error)
-    ElMessage.error('获取账户列表失败: ' + (error.response?.data?.message || error.message || '未知错误'))
-  }
-}
-
-// 当选择账户时
 const onAccountSelect = (accountId) => {
-  if (accountId) {
-    // 如果选择了账户，则清空新建账户的信息
-    const selectedAccount = availableAccounts.value.find(acc => acc._id === accountId)
-    if (selectedAccount) {
-      dialog.form.accountCode = selectedAccount.code
-      dialog.form.accountName = selectedAccount.name
-      dialog.form.accountPhone = selectedAccount.phone || ''
-      dialog.form.accountEmail = selectedAccount.email || ''
-      dialog.form.accountGender = selectedAccount.gender || 'male'
-      dialog.form.accountIdentityNo = selectedAccount.identityNo || ''
-      dialog.form.accountAddress = selectedAccount.address || ''
-    }
-  } else {
-    // 如果取消了选择，保持现有表单内容或清空
-    // 不做任何操作，保留当前值
-  }
+  if (!accountId) return
+  const acc = availableAccounts.value.find(a => a._id === accountId)
+  if (!acc) return
+  dialog.form.accountCode = acc.code
+  dialog.form.accountName = acc.name
+  dialog.form.accountPhone = acc.phone || ''
+  dialog.form.accountEmail = acc.email || ''
+  dialog.form.accountGender = acc.gender || 'male'
+  dialog.form.accountIdentityNo = acc.identityNo || ''
+  dialog.form.accountAddress = acc.address || ''
 }
-
-// 获取选择账户信息的显示文字
 const getSelectedAccountInfo = () => {
-  if (dialog.form.selectedAccount) {
-    const account = availableAccounts.value.find(acc => acc._id === dialog.form.selectedAccount)
-    if (account) {
-      return `${account.code} (${account.name})`
-    }
-  }
-  return ''
+  const acc = availableAccounts.value.find(a => a._id === dialog.form.selectedAccount)
+  return acc ? `${acc.code} (${acc.name})` : ''
 }
 
-// 获取用户列表
+/* ===== 列表拉取（v8.0.2 统一走 buildListPayload） ===== */
 const fetchUsers = async () => {
-  loading.value = true
-  try {
-    const skipValue = (pagination.currentPage - 1) * pagination.pageSize;
-    const options = {
-      limit: pagination.pageSize,
-      sort: { sort: -1, createdAt: -1 } // 先按sort排序，再按创建时间排序
-    };
+  const filter = {}
 
-    // 只有当skipValue大于0时才添加skip参数，避免后端验证错误
-    if (skipValue > 0) {
-      options.skip = skipValue;
-    }
+  // 基础筛选
+  appendExact(filter, 'Org', filters.org)
+  appendExact(filter, 'roleTemp', filters.role)
+  appendBoolean(filter, 'isActive', filters.isActive)
 
-    // 构建查询条件
-    const filter = {};
+  // 高级搜索：关键词走 regExp（后端 User listVD 仅支持 filter.regExp）
+  appendRegExp(filter, advancedFilters.value.keyword)
+  appendExact(filter, 'roleTemp', advancedFilters.value.role)
+  appendBoolean(filter, 'isActive', advancedFilters.value.status)
+  appendExact(filter, 'Org', advancedFilters.value.org)
+  appendDateRange(filter, advancedFilters.value.dateRange, 'createdAt')
 
-    // 基础筛选条件
-    // 组织筛选
-    if (filters.org) {
-      filter.Org = filters.org;
-    }
+  const payload = buildListPayload({
+    filter,
+    page: pagination.currentPage,
+    pageSize: pagination.pageSize,
+    sort: { sort: -1, createdAt: -1 },
+    populateKeys: ['Org', 'Account']
+  })
 
-    // 角色筛选
-    if (filters.role) {
-      filter.roleTemp = filters.role;
-    }
-
-    // 状态筛选
-    if (filters.isActive !== '' && filters.isActive !== null && filters.isActive !== undefined) {
-      filter.isActive = filters.isActive === 'true' || filters.isActive === true;
-    }
-
-    // 高级筛选条件
-    // 关键词搜索 —— 后端 v7.x User 模块 listVD 仅支持 `filter.regExp`（匹配 nickname），
-    // 旧的 `$or` 多字段搜索会被 matchedData() 静默剔除，所以改为传 regExp。
-    if (advancedFilters.value.keyword) {
-      filter.regExp = advancedFilters.value.keyword;
-    }
-
-    // 高级角色筛选
-    if (advancedFilters.value.role) {
-      filter.roleTemp = advancedFilters.value.role;
-    }
-
-    // 高级状态筛选
-    if (advancedFilters.value.status !== '' && advancedFilters.value.status !== null && advancedFilters.value.status !== undefined) {
-      filter.isActive = advancedFilters.value.status === 'true' || advancedFilters.value.status === true;
-    }
-
-    // 高级组织筛选
-    if (advancedFilters.value.org) {
-      filter.Org = advancedFilters.value.org;
-    }
-
-    // 时间范围筛选（创建时间）
-    if (advancedFilters.value.dateRange && advancedFilters.value.dateRange.length === 2) {
-      filter.createdAt = {
-        $gte: new Date(advancedFilters.value.dateRange[0]),
-        $lte: new Date(advancedFilters.value.dateRange[1])
-      };
-    }
-
-    const params = {
-      filter: filter,
-      options: {
-        ...options,
-        populate: [
-          { path: 'Account', select: 'name phone email gender identityNo address isActive createdAt lastLoginAt' },
-          { path: 'Org', select: 'name' } // 添加 Org 信息
-        ]
-      }
-    }
-
-    console.log('Sending request with params:', params);
-    console.log('Filters state:', filters);
-    console.log('Advanced filters state:', advancedFilters.value);
-
-    const response = await userService.getUsers(params)
-    console.log('Received response:', response);
-    if (response.data.success) {
-      const { items, total } = response.data.data
-      console.log('Filtered items count:', items.length, 'Total:', total);
-      users.value = items
-      pagination.total = total
-    }
-  } catch (error) {
-    console.error('获取用户列表失败:', error)
-    ElMessage.error('获取用户列表失败: ' + (error.response?.data?.message || error.message || '未知错误'))
-  } finally {
-    loading.value = false
-  }
+  await fetchList(userService.getUsers.bind(userService), payload)
 }
 
-// 高级搜索处理函数
-const handleAdvancedSearch = (searchData) => {
-  Object.assign(advancedFilters.value, searchData);
-  pagination.currentPage = 1; // 重置到第一页
-  fetchUsers();
-};
-
-// 高级搜索重置处理函数
+const handleAdvancedSearch = (data) => {
+  Object.assign(advancedFilters.value, data)
+  pagination.currentPage = 1
+  fetchUsers()
+}
 const handleAdvancedReset = () => {
-  // 重置高级搜索参数
-  advancedFilters.value = {
-    keyword: '',
-    dateRange: [],
-    role: '',
-    status: '',
-    org: ''
-  };
-  fetchUsers();
-};
-
-// 重置筛选条件
+  advancedFilters.value = { keyword: '', dateRange: [], role: '', status: '', org: '' }
+  fetchUsers()
+}
 const resetFilters = () => {
   filters.org = ''
   filters.role = ''
@@ -565,381 +452,144 @@ const resetFilters = () => {
   fetchUsers()
 }
 
-// 分页变化
-const handleSizeChange = (size) => {
-  pagination.pageSize = size
-  pagination.currentPage = 1
-  fetchUsers()
-}
+/* ===== 批量操作 ===== */
+const onBatchActivate = () => batchUpdateField({
+  field: 'isActive',
+  value: true,
+  label: '激活',
+  apply: (ids, body) => Promise.allSettled(ids.map(id => userService.updateUser(id, body))),
+  onComplete: fetchUsers
+})
+const onBatchDeactivate = () => batchDeactivate({
+  label: '禁用',
+  apply: (ids) => Promise.allSettled(ids.map(id => userService.updateUser(id, { isActive: false }))),
+  onComplete: fetchUsers
+})
 
-const handleCurrentChange = (page) => {
-  pagination.currentPage = page
-  fetchUsers()
-}
-
-// 打开创建对话框
+/* ===== 打开/保存 ===== */
 const openCreateDialog = () => {
   dialog.mode = 'create'
   dialog.visible = true
   dialog.activeTab = 'user'
-  // 重置表单
   Object.assign(dialog.form, {
-    // 用户信息
-    nickname: '',
-    roleTemp: 'teacher', // 改为小写
-    sort: 0,
-    isActive: true,
-    orgId: '',
-
-    // 选择现有账户
+    nickname: '', roleTemp: 'teacher', sort: 0, isActive: true, orgId: '',
     selectedAccount: '',
-
-    // 账户信息
-    accountCode: '',
-    accountName: '',
-    accountPhone: '',
-    accountEmail: '',
-    accountGender: 'male', // 改为小写
-    accountIdentityNo: '',
-    accountAddress: '',
+    accountCode: '', accountName: '', accountPhone: '', accountEmail: '',
+    accountGender: 'male', accountIdentityNo: '', accountAddress: '',
     accountPassword: ''
   })
 }
-
-// 打开编辑对话框
 const openEditDialog = (row) => {
   dialog.mode = 'edit'
   dialog.visible = true
-  dialog.activeTab = 'user'
-
-  // 填充表单数据
   Object.assign(dialog.form, {
-    // 用户信息
     _id: row._id,
     nickname: row.nickname || '',
-    roleTemp: row.roleTemp || 'teacher', // 确保使用小写
+    roleTemp: row.roleTemp || 'teacher',
     sort: row.sort || 0,
     isActive: row.isActive,
     orgId: row.Org?._id || '',
-
-    // 选择现有账户 - 编辑时不显示此选项
     selectedAccount: '',
-
-    // 账户信息（从关联的Account获取，编辑时只读）
     accountCode: row.Account?.code || '',
     accountName: row.Account?.name || '',
     accountPhone: row.Account?.phone || '',
     accountEmail: row.Account?.email || '',
-    accountGender: row.Account?.gender || 'male', // 确保使用小写
+    accountGender: row.Account?.gender || 'male',
     accountIdentityNo: row.Account?.identityNo || '',
     accountAddress: row.Account?.address || ''
   })
 }
-
-// 查看详情
-const viewDetail = (row) => {
-  ElMessageBox.alert(`
-    <div><strong>真实姓名:</strong> ${row.Account?.name || '-'}</div>
-    <div><strong>昵称:</strong> ${row.nickname || '-'}</div>
-    <div><strong>手机号:</strong> ${row.Account?.phone || '-'}</div>
-    <div><strong>邮箱:</strong> ${row.Account?.email || '-'}</div>
-    <div><strong>身份证号:</strong> ${row.Account?.identityNo || '-'}</div>
-    <div><strong>角色:</strong> ${row.roleTemp || '-'}</div>
-    <div><strong>所属组织:</strong> ${row.Org?.name || '-'}</div>
-    <div><strong>头像:</strong> ${row.avatar || '-'}</div>
-    <div><strong>排序:</strong> ${row.sort || 0}</div>
-    <div><strong>状态:</strong> ${formatActiveStatus(row.isActive)}</div>
-    <div><strong>创建时间:</strong> ${formatDate(row.createdAt)}</div>
-    <div><strong>最后更新时间:</strong> ${formatDate(row.updatedAt)}</div>
-  `, '用户详情', {
-    dangerouslyUseHTMLString: true,
-    confirmButtonText: '确定'
-  })
+const closeDialog = () => {
+  dialog.visible = false
+  if (userFormRef.value) userFormRef.value.clearValidate()
 }
 
-// 保存用户
+const pickDefined = (obj) => Object.fromEntries(
+  Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+)
+
+const buildUserBody = () => pickDefined({
+  nickname: dialog.form.nickname,
+  roleTemp: (dialog.form.roleTemp || '').toLowerCase(),
+  sort: dialog.form.sort,
+  isActive: dialog.form.isActive,
+  Org: dialog.form.orgId
+})
+
+const buildAccountBody = () => pickDefined({
+  code: dialog.form.accountCode,
+  name: dialog.form.accountName,
+  accountType: 'User',
+  password: dialog.form.accountPassword,
+  phone: dialog.form.accountPhone,
+  email: dialog.form.accountEmail,
+  gender: (dialog.form.accountGender || '').toLowerCase(),
+  identityNo: dialog.form.accountIdentityNo,
+  address: dialog.form.accountAddress
+})
+
 const saveUser = async () => {
   if (!userFormRef.value) {
     ElMessage.error('表单引用不存在')
     return
   }
-
-  // 在编辑模式下，手动验证关键字段，而不依赖表单验证
   if (dialog.mode === 'edit') {
-    if (!dialog.form.nickname || dialog.form.nickname.trim() === '') {
+    if (!dialog.form.nickname || !dialog.form.nickname.trim()) {
       ElMessage.error('请输入昵称')
       return
     }
-
     if (!dialog.form.roleTemp) {
       ElMessage.error('请选择角色')
       return
     }
-
-    // 检查昵称长度
-    if (dialog.form.nickname.length < 2 || dialog.form.nickname.length > 26) {
-      ElMessage.error('昵称长度应在2-26个字符之间')
+  } else {
+    try {
+      await userFormRef.value.validate()
+    } catch (_) {
       return
     }
-
-    // 如果手动验证通过，继续执行保存
-    dialog.loading = true
-    try {
-      const userData = {
-        nickname: dialog.form.nickname,
-        roleTemp: dialog.form.roleTemp.toLowerCase(), // 确保角色是小写
-        sort: dialog.form.sort,
-        isActive: dialog.form.isActive
-      }
-
-      const response = await userService.updateUser(dialog.form._id, userData)
-
-      if (response.data.success) {
-        ElMessage.success('更新用户成功')
-        dialog.visible = false
-        fetchUsers()
-      } else {
-        ElMessage.error(response.data.message || '更新用户失败')
-      }
-    } catch (error) {
-      console.error('保存用户失败:', error)
-      ElMessage.error(error.response?.data?.message || error.message || '保存用户失败')
-    } finally {
-      dialog.loading = false
-    }
-  } else {
-    // 创建模式下
-    dialog.loading = true
-    try {
-      // 如果选择了现有账户
-      if (dialog.form.selectedAccount) {
-        // 直接使用选定的账户ID
-        const userData = {
-          user: {
-            nickname: dialog.form.nickname,
-            roleTemp: dialog.form.roleTemp.toLowerCase(), // 确保角色是小写
-            sort: dialog.form.sort,
-            isActive: dialog.form.isActive,
-            Org: dialog.form.orgId,
-            Account: dialog.form.selectedAccount // 直接关联现有账户
-          }
-        }
-
-        const response = await userService.createUser(userData)
-
-        if (response.data.success) {
-          ElMessage.success('创建用户成功')
-          dialog.visible = false
-          fetchUsers()
-        } else {
-          ElMessage.error(response.data.message || '创建用户失败')
-        }
-      } else {
-        // 验证账户信息字段（当未选择现有账户时）
-        if (!dialog.form.accountCode || dialog.form.accountCode.trim() === '') {
-          ElMessage.error('请输入账户名称')
-          return
-        }
-        if (!dialog.form.accountName || dialog.form.accountName.trim() === '') {
-          ElMessage.error('请输入真实姓名')
-          return
-        }
-        if (!dialog.form.accountPassword || dialog.form.accountPassword.length < 8) {
-          ElMessage.error('密码长度至少8位')
-          return
-        }
-
-        // 检查账户名称和真实姓名长度
-        if (dialog.form.accountCode.length < 4 || dialog.form.accountCode.length > 16) {
-          ElMessage.error('账户名称长度应在4-16个字符之间')
-          return
-        }
-        if (dialog.form.accountName.length < 2 || dialog.form.accountName.length > 50) {
-          ElMessage.error('真实姓名长度应在2-50个字符之间')
-          return
-        }
-
-        // 创建新账户并关联用户
-        const userData = {
-          user: {
-            nickname: dialog.form.nickname,
-            roleTemp: dialog.form.roleTemp.toLowerCase(), // 确保角色是小写
-            sort: dialog.form.sort,
-            isActive: dialog.form.isActive,
-            Org: dialog.form.orgId
-          },
-          account: {
-            code: dialog.form.accountCode,
-            name: dialog.form.accountName,
-            accountType: 'User' // 确保账户类型设置为User
-          }
-        }
-
-        // 动态添加账户信息字段（仅在有值时添加）
-        if (dialog.form.accountPhone && dialog.form.accountPhone.trim() !== '') {
-          // 验证手机号长度 (10-15)
-          if (dialog.form.accountPhone.length < 10 || dialog.form.accountPhone.length > 15) {
-            ElMessage.error('手机号长度应在10-15个字符之间')
-            dialog.loading = false
-            return
-          }
-          userData.account.phone = dialog.form.accountPhone
-        }
-
-        if (dialog.form.accountEmail && dialog.form.accountEmail.trim() !== '') {
-          userData.account.email = dialog.form.accountEmail
-        }
-
-        if (dialog.form.accountGender && dialog.form.accountGender.trim() !== '') {
-          userData.account.gender = dialog.form.accountGender.toLowerCase() // 转换为小写以符合后端要求
-        }
-
-        if (dialog.form.accountIdentityNo && dialog.form.accountIdentityNo.trim() !== '') {
-          // 验证身份证号长度 (15-18)
-          if (dialog.form.accountIdentityNo.length < 15 || dialog.form.accountIdentityNo.length > 18) {
-            ElMessage.error('身份证号长度应在15-18个字符之间')
-            dialog.loading = false
-            return
-          }
-          userData.account.identityNo = dialog.form.accountIdentityNo
-        }
-
-        if (dialog.form.accountAddress && dialog.form.accountAddress.trim() !== '') {
-          // 验证地址长度 (5-200)
-          if (dialog.form.accountAddress.length < 5 || dialog.form.accountAddress.length > 200) {
-            ElMessage.error('地址长度应在5-200个字符之间')
-            dialog.loading = false
-            return
-          }
-          userData.account.address = dialog.form.accountAddress
-        }
-
-        // 验证密码长度
-        if (dialog.form.accountPassword && dialog.form.accountPassword.length >= 8 && dialog.form.accountPassword.length <= 16) {
-          userData.account.password = dialog.form.accountPassword
-        } else if (dialog.form.accountPassword) {
-          ElMessage.error('密码长度应在8-16个字符之间')
-          dialog.loading = false
-          return
-        }
-
-        const response = await userService.createUser(userData)
-
-        if (response.data.success) {
-          ElMessage.success('创建用户成功')
-          dialog.visible = false
-          fetchUsers()
-        } else {
-          ElMessage.error(response.data.message || '创建用户失败')
-        }
-      }
-    } catch (error) {
-      console.error('保存用户失败:', error)
-      ElMessage.error(error.response?.data?.message || error.message || '保存用户失败')
-    } finally {
-      dialog.loading = false
-    }
   }
-}
 
-// 删除用户
-const deleteUser = async (id) => {
+  dialog.loading = true
   try {
-    const response = await userService.updateUser(id, { isActive: false })
+    let response
+    if (dialog.mode === 'edit') {
+      response = await userService.updateUser(dialog.form._id, buildUserBody())
+    } else if (dialog.form.selectedAccount) {
+      // 创建 + 绑定现有账户
+      response = await userService.createUser({
+        user: { ...buildUserBody(), Account: dialog.form.selectedAccount }
+      })
+    } else {
+      // 创建 + 新建账户
+      const accountBody = buildAccountBody()
+      if (!accountBody.code || !accountBody.name || !accountBody.password) {
+        ElMessage.error('账户名称、真实姓名、密码必填')
+        dialog.loading = false
+        return
+      }
+      response = await userService.createUser({
+        user: buildUserBody(),
+        account: accountBody
+      })
+    }
+
     if (response.data.success) {
-      ElMessage.success('删除用户成功')
+      ElMessage.success(dialog.mode === 'create' ? '创建用户成功' : '更新用户成功')
+      dialog.visible = false
       fetchUsers()
     } else {
-      ElMessage.error(response.data.message || '删除用户失败')
+      ElMessage.error(response.data.message || '保存失败')
     }
   } catch (error) {
-    console.error('删除用户失败:', error)
-    ElMessage.error(error.response?.data?.message || error.message || '删除用户失败')
+    console.error('保存用户失败:', error)
+    ElMessage.error(error.response?.data?.message || '保存用户失败')
+  } finally {
+    dialog.loading = false
   }
 }
 
-// 关闭对话框
-const closeDialog = () => {
-  dialog.visible = false
-  if (userFormRef.value) {
-    userFormRef.value.clearValidate()
-  }
-}
-
-// 处理表格选择变化
-const handleSelectionChange = (selection) => {
-  selectedRows.value = selection
-}
-
-// 批量更新状态
-const batchUpdateStatus = async (status) => {
-  if (selectedRows.value.length === 0) {
-    ElMessage.warning('请至少选择一项进行操作')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要${status ? '激活' : '禁用'}选中的 ${selectedRows.value.length} 项吗？`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    const ids = selectedRows.value.map(item => item._id)
-    const promises = ids.map(id =>
-      userService.updateUser(id, { isActive: status })
-    )
-
-    const results = await Promise.allSettled(promises)
-    const succeeded = results.filter(result => result.status === 'fulfilled').length
-
-    ElMessage.success(`批量操作完成，成功${succeeded}项，共${selectedRows.value.length}项`)
-    fetchUsers() // 刷新数据
-    selectedRows.value = [] // 清空选择
-  } catch {
-    // 用户取消操作
-  }
-}
-
-// 批量删除（软删除：将 isActive 设置为 false）
-const batchDelete = async () => {
-  if (selectedRows.value.length === 0) {
-    ElMessage.warning('请至少选择一项进行删除')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确定要禁用选中的 ${selectedRows.value.length} 项吗？此操作将取消这些用户的激活状态。`,
-      '警告',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    )
-
-    const ids = selectedRows.value.map(item => item._id)
-    const promises = ids.map(id =>
-      userService.updateUser(id, { isActive: false })
-    )
-
-    const results = await Promise.allSettled(promises)
-    const succeeded = results.filter(result => result.status === 'fulfilled').length
-
-    ElMessage.success(`批量操作完成，成功${succeeded}项，共${selectedRows.value.length}项`)
-    fetchUsers() // 刷新数据
-    selectedRows.value = [] // 清空选择
-  } catch {
-    // 用户取消操作
-  }
-}
-
-// 打印表格功能
+/* ===== 打印 ===== */
 const printTable = (data) => {
   const columns = [
     { prop: 'Account.name', label: '真实姓名' },
@@ -947,21 +597,19 @@ const printTable = (data) => {
     { prop: 'Account.email', label: '邮箱' },
     { prop: 'Account.identityNo', label: '身份证号' },
     { prop: 'nickname', label: '昵称' },
-    { prop: 'roleTemp', label: '角色' },
+    { prop: 'roleTemp', label: '角色', formatter: r => formatUserRole(r.roleTemp) },
     { prop: 'Org.name', label: '所属组织' },
-    { prop: 'isActive', label: '状态', formatter: (row) => formatActiveStatus(row.isActive) },
-    { prop: 'sort', label: '排序', formatter: (row) => row.sort || 0 },
-    { prop: 'createdAt', label: '创建时间', formatter: (row) => formatDate(row.createdAt) }
+    { prop: 'isActive', label: '状态', formatter: r => formatActiveStatus(r.isActive) },
+    { prop: 'sort', label: '排序', formatter: r => r.sort || 0 },
+    { prop: 'createdAt', label: '创建时间', formatter: r => formatDate(r.createdAt) }
   ]
-
   printTableUtil(data, columns, '用户管理数据报表')
 }
 
-// 初始化组织选项
 onMounted(async () => {
-  await fetchOrgs()  // 先获取组织列表
-  await fetchAccounts() // 获取账户列表
-  fetchUsers()       // 再获取用户列表
+  await fetchOrgs()
+  await fetchAccounts()
+  fetchUsers()
 })
 </script>
 
@@ -999,33 +647,11 @@ onMounted(async () => {
   gap: 5px;
 }
 
-.batch-operation {
-  margin-top: 16px;
-}
-
-.batch-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.selection-info {
-  font-weight: 500;
-  color: #606266;
-}
-
-.batch-buttons {
-  display: flex;
-  gap: 8px;
-}
-
+.batch-operation,
 .print-operation {
   margin-top: 16px;
 }
-
+.batch-toolbar,
 .print-toolbar {
   display: flex;
   justify-content: space-between;
@@ -1034,12 +660,12 @@ onMounted(async () => {
   background-color: #f5f7fa;
   border-radius: 4px;
 }
-
+.selection-info,
 .print-info {
   font-weight: 500;
   color: #606266;
 }
-
+.batch-buttons,
 .print-buttons {
   display: flex;
   gap: 8px;

@@ -85,3 +85,24 @@ export const formatAccountType = (accountType) => {
 export const formatActiveStatus = (isActive) => {
   return isActive ? '激活' : '未激活'
 }
+
+/**
+ * 把"出生日期"格式化为"yyyy/MM/dd (xx岁)"，无值返回 '-'
+ *
+ * 之前散落在 Students.vue 的 calculateAge + 模板拼接（'yyyy/MM/dd (xx岁)'），
+ * 升级为统一工具：直接拿 birthday 字符串就能用。
+ *
+ * @param {string|number|Date|null|undefined} birthday
+ * @returns {string}
+ */
+export const formatBirthdayAge = (birthday) => {
+  if (!birthday) return '-'
+  const d = new Date(birthday)
+  if (isNaN(d.getTime())) return '-'
+  const dateStr = formatDate(d)
+  const today = new Date()
+  let age = today.getFullYear() - d.getFullYear()
+  const m = today.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--
+  return `${dateStr} (${age}岁)`
+}
