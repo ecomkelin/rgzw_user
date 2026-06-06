@@ -31,7 +31,7 @@
         <el-form-item>
           <el-button type="primary" @click="fetchUsers">查询</el-button>
           <el-button @click="resetFilters">重置</el-button>
-          <el-button type="success" @click="openCreateDialog">新增用户</el-button>
+          <el-button v-if="isManager" type="success" @click="openCreateDialog">新增用户</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -158,9 +158,10 @@
             </el-form-item>
 
             <el-form-item label="所属组织" prop="orgId">
-              <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit'" placeholder="请选择组织" style="width: 100%">
+              <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit' || !isAdmin" placeholder="请选择组织" style="width: 100%">
                 <el-option v-for="org in orgOptions" :key="org._id" :label="org.name" :value="org._id"></el-option>
               </el-select>
+              <div v-if="!isAdmin" class="field-hint">所属组织由当前账户所在校区固定（后端强制）</div>
             </el-form-item>
           </el-tab-pane>
 
@@ -228,9 +229,10 @@
             <el-switch v-model="dialog.form.isActive" active-text="激活" inactive-text="未激活"></el-switch>
           </el-form-item>
           <el-form-item label="所属组织" prop="orgId">
-            <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit'" placeholder="请选择组织" style="width: 100%">
+            <el-select v-model="dialog.form.orgId" :disabled="dialog.mode === 'edit' || !isAdmin" placeholder="请选择组织" style="width: 100%">
               <el-option v-for="org in orgOptions" :key="org._id" :label="org.name" :value="org._id"></el-option>
             </el-select>
+            <div v-if="!isAdmin" class="field-hint">所属组织由当前账户所在校区固定（后端强制）</div>
           </el-form-item>
           <!-- 编辑时只读展示关联账户 -->
           <el-form-item label="关联账户">
@@ -272,6 +274,7 @@ import {
 } from '../../utils/listPayload'
 import { USER_ROLES, formatUserRole } from '../../utils/enums'
 import { useListPage } from '../../composables/useListPage'
+import { useAccount } from '../../composables/useAccount'
 import DetailDialog from '../../components/DetailDialog.vue'
 import AdvancedSearch from '../../components/AdvancedSearch.vue'
 
@@ -288,6 +291,11 @@ const {
   batchUpdateField,
   batchDeactivate
 } = useListPage()
+
+/* ===== 权限（与 router/index.js requiresManager 对齐）=====
+ * User.add：非超管 → doc.Org = currentUser.Org；超管可显式指定
+ */
+const { isAdmin, isManager, currentOrgId } = useAccount()
 
 /* ===== 高级搜索 ===== */
 const advancedFilters = ref({
@@ -310,6 +318,8 @@ const orgOptions = ref([])
 const availableAccounts = ref([])
 
 const fetchOrgs = async () => {
+  // Org.dao.list 强制 isAdmin；非超管直接跳过 —— Org 字段后端会用 currentUser.Org 强制覆盖
+  if (!isAdmin.value) return
   try {
     const resp = await orgService.getOrgs({
       filter: {},
@@ -472,7 +482,9 @@ const openCreateDialog = () => {
   dialog.visible = true
   dialog.activeTab = 'user'
   Object.assign(dialog.form, {
-    nickname: '', roleTemp: 'teacher', sort: 0, isActive: true, orgId: '',
+    nickname: '', roleTemp: 'teacher', sort: 0, isActive: true,
+    // 非超管：后端强制 doc.Org = currentUser.Org，前端预先回填避免提交后被忽略
+    orgId: isAdmin.value ? '' : (currentOrgId.value || ''),
     selectedAccount: '',
     accountCode: '', accountName: '', accountPhone: '', accountEmail: '',
     accountGender: 'male', accountIdentityNo: '', accountAddress: '',

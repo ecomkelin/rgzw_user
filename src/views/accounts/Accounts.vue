@@ -24,7 +24,7 @@
         <el-form-item>
           <el-button type="primary" @click="fetchAccounts">查询</el-button>
           <el-button @click="resetFilters">重置</el-button>
-          <el-button type="success" @click="openCreateDialog">新增账户</el-button>
+          <el-button v-if="isAdmin" type="success" @click="openCreateDialog">新增账户</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -44,7 +44,7 @@
           <template #default="{ row }">
             <div class="sub-table-container">
               <el-tabs v-model="row.currentSubTable">
-                <el-tab-pane label="关联用户" name="users" v-if="row.accountType === 'User' || row.accountType === 'Admin'">
+                <el-tab-pane label="关联用户" name="users" v-if="row.accountType === 'User'">
                   <el-table :data="row.relatedUsers || []" style="width: 100%; margin-left: 40px;">
                     <el-table-column prop="nickname" label="用户昵称" width="120"></el-table-column>
                     <el-table-column prop="roleTemp" label="角色" width="120">
@@ -129,14 +129,14 @@
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
-              <el-dropdown>
+              <el-dropdown v-if="isAdmin">
                 <el-button size="small">
                   新增关联 <el-icon><arrow-down /></el-icon>
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item
-                      v-if="row.accountType === 'User' || row.accountType === 'Admin'"
+                      v-if="row.accountType === 'User'"
                       @click="openCreateUserDialog(row)"
                     >
                       新增用户
@@ -150,7 +150,7 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-              <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
+              <el-button v-if="isAdmin" size="small" @click="openEditDialog(row)">编辑</el-button>
               <el-button size="small" type="primary" @click="openDetail(row)">查看</el-button>
             </div>
           </template>
@@ -254,7 +254,12 @@
 
     <!-- 新增关联用户对话框 -->
     <el-dialog title="新增用户" v-model="createUserDialog.visible" width="500px" :before-close="closeCreateUserDialog">
-      <el-form :model="createUserDialog.form" label-width="120px">
+      <el-form
+        :model="createUserDialog.form"
+        :rules="createUserDialog.rules"
+        ref="createUserFormRef"
+        label-width="120px"
+      >
         <el-form-item label="用户昵称" prop="nickname">
           <el-input v-model="createUserDialog.form.nickname" placeholder="请输入用户昵称"></el-input>
         </el-form-item>
@@ -280,7 +285,12 @@
 
     <!-- 新增关联学生对话框 -->
     <el-dialog title="新增学生" v-model="createStudentDialog.visible" width="500px" :before-close="closeCreateStudentDialog">
-      <el-form :model="createStudentDialog.form" label-width="120px">
+      <el-form
+        :model="createStudentDialog.form"
+        :rules="createStudentDialog.rules"
+        ref="createStudentFormRef"
+        label-width="120px"
+      >
         <el-form-item label="学生姓名" prop="name">
           <el-input v-model="createStudentDialog.form.name" placeholder="请输入学生姓名"></el-input>
         </el-form-item>
@@ -338,12 +348,14 @@ import {
   ACCOUNT_TYPES
 } from '../../utils/enums'
 import { useListPage } from '../../composables/useListPage'
+import { useAccount } from '../../composables/useAccount'
 import DetailDialog from '../../components/DetailDialog.vue'
 
-/* ===== 业务枚举（Accounts 页面可见的 accountType 子集 —— 不要在这里给用户开 Admin） ===== */
-const USER_VISIBLE_ACCOUNT_TYPES = Object.freeze(
-  ACCOUNT_TYPES.filter(t => t.value !== 'Admin')
-)
+/* ===== 业务枚举（Accounts 页面可见的 accountType 子集）
+ * 历史：v2026-06-04 后端移除 'Admin' 字面量后，ACCOUNT_TYPES 已只剩 User/Student，
+ * 这里直接复用即可 —— 若以后想给"普通经理"屏蔽 Student 视图，只改 ACCOUNT_TYPES 即可。
+ */
+const USER_VISIBLE_ACCOUNT_TYPES = ACCOUNT_TYPES
 const STUDENT_SOURCE_TYPES = Object.freeze([
   '地推', '传单', '活动', '介绍', '听说', '路过', '抖音', '朋友圈', '其他'
 ])
@@ -361,6 +373,13 @@ const {
   batchUpdateField,
   batchDeactivate
 } = useListPage()
+
+/* ===== 权限（Account.list 后端要求 isAdmin）=====
+ * 4 个身份 helper 走 useAccount composable
+ * 路由层面 router/index.js 已经 requiresAdmin 守卫 + 跳转 dashboard，
+ * 这里仅暴露 isAdmin 给按钮的 v-if（如"新增账户"、"编辑" 等超管专属操作）。
+ */
+const { isAdmin, currentOrgId } = useAccount()
 
 /* ===== 基础筛选 ===== */
 const filters = reactive({
@@ -445,16 +464,34 @@ const createUserDialog = reactive({
   visible: false,
   loading: false,
   account: null,
-  form: { nickname: '', roleTemp: 'teacher', orgId: '', isActive: true }
+  form: { nickname: '', roleTemp: 'teacher', orgId: '', isActive: true },
+  rules: {
+    nickname: [
+      { required: true, message: '请输入用户昵称', trigger: 'blur' },
+      { min: 2, max: 50, message: '昵称长度应在2-50个字符之间', trigger: 'blur' }
+    ],
+    roleTemp: [{ required: true, message: '请选择角色', trigger: 'change' }],
+    orgId:    [{ required: true, message: '请选择所属组织', trigger: 'change' }]
+  }
 })
+const createUserFormRef = ref()
 
 /* ===== 关联学生对话框 ===== */
 const createStudentDialog = reactive({
   visible: false,
   loading: false,
   account: null,
-  form: { name: '', school: '', sourceType: '其他', orgId: '', isActive: true }
+  form: { name: '', school: '', sourceType: '其他', orgId: '', isActive: true },
+  rules: {
+    name: [
+      { required: true, message: '请输入学生姓名', trigger: 'blur' },
+      { min: 2, max: 50, message: '姓名长度应在2-50个字符之间', trigger: 'blur' }
+    ],
+    sourceType: [{ required: true, message: '请选择来源类型', trigger: 'change' }],
+    orgId:      [{ required: true, message: '请选择所属组织', trigger: 'change' }]
+  }
 })
+const createStudentFormRef = ref()
 
 /* ===== 列表拉取（v8.0.2 统一走 buildListPayload） ===== */
 const fetchAccounts = async () => {
@@ -494,7 +531,7 @@ const handleExpandChange = async (row, expanded) => {
 
 const loadRelatedData = async (row) => {
   try {
-    if (row.accountType === 'User' || row.accountType === 'Admin') {
+    if (row.accountType === 'User') {
       const userResp = await userService.getUsers({
         filter: { Account: row._id },
         options: { populate: [{ path: 'Org', select: 'name' }] }
@@ -637,9 +674,12 @@ const openCreateUserDialog = async (account) => {
 }
 const closeCreateUserDialog = () => { createUserDialog.visible = false }
 const saveRelatedUser = async () => {
-  if (!createUserDialog.form.nickname || !createUserDialog.form.orgId) {
-    ElMessage.error('请填写昵称和组织')
-    return
+  if (createUserFormRef.value) {
+    try {
+      await createUserFormRef.value.validate()
+    } catch (_) {
+      return
+    }
   }
   createUserDialog.loading = true
   try {
@@ -677,9 +717,12 @@ const openCreateStudentDialog = (account) => {
 }
 const closeCreateStudentDialog = () => { createStudentDialog.visible = false }
 const saveRelatedStudent = async () => {
-  if (!createStudentDialog.form.name || !createStudentDialog.form.orgId) {
-    ElMessage.error('请填写姓名和组织')
-    return
+  if (createStudentFormRef.value) {
+    try {
+      await createStudentFormRef.value.validate()
+    } catch (_) {
+      return
+    }
   }
   createStudentDialog.loading = true
   try {

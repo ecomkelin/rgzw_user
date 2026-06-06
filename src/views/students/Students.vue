@@ -350,6 +350,7 @@ import {
   appendDateRange
 } from '../../utils/listPayload'
 import { useListPage } from '../../composables/useListPage'
+import { useAccount } from '../../composables/useAccount'
 import DetailDialog from '../../components/DetailDialog.vue'
 import AdvancedSearch from '../../components/AdvancedSearch.vue'
 

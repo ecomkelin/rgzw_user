@@ -39,7 +39,7 @@
           <div style="display: flex; justify-content: flex-end;">
             <el-button type="primary" @click="fetchPacks">查询</el-button>
             <el-button @click="resetFilters">重置</el-button>
-            <el-button type="success" @click="openCreateDialog">新增课包</el-button>
+            <el-button v-if="isManager" type="success" @click="openCreateDialog">新增课包</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -285,7 +285,7 @@ import { packService } from '../../api/pack'
 import { orgService } from '../../api/org'
 import { formatDate, formatActiveStatus, formatDateOnly } from '../../utils/format'
 import { printTable as printTableUtil } from '../../utils/print'
-import { useAuthStore } from '../../stores/auth'
+import { useAccount } from '../../composables/useAccount'
 
 // 状态变量
 const packs = ref([])
@@ -294,27 +294,9 @@ const loading = ref(false)
 const packFormRef = ref()
 const selectedRows = ref([]) // 选中的行
 
-// 认证 store
-const authStore = useAuthStore()
-
-// 当前用户所属 Org
-const currentOrgId = computed(() => authStore.currentOrgId || null)
-
-// 是否管理员（管理员可看全平台组织、可不按 Org 过滤）
-const isAdmin = computed(() => Boolean(authStore.user?.isAdmin))
-
-// 兜底回拉：与 Courses.vue 同款模式
-const ensureCurrentOrgId = async () => {
-  if (authStore.currentOrgId) return authStore.currentOrgId
-  const currentUser = authStore.user?.currentUser
-  if (!currentUser) return null
-  if (typeof currentUser === 'object') {
-    const orgId = currentUser.Org || null
-    authStore.setCurrentOrgId(orgId)
-    return orgId
-  }
-  return null
-}
+// 账户身份 helper（与后端 payloadChecker.js 4 个 helper 对齐）
+// Pack.add 限制 isManager，"新增"按钮走 isManager；Org 过滤走 isAdmin
+const { isAdmin, isManager, currentOrgId, ensureCurrentOrgId } = useAccount()
 
 // 分页
 const pagination = reactive({
@@ -532,8 +514,8 @@ const handleSelectionChange = (selection) => {
 }
 
 // 打开创建对话框
-const openCreateDialog = async () => {
-  const orgId = await ensureCurrentOrgId()
+const openCreateDialog = () => {
+  const orgId = ensureCurrentOrgId()
   if (!orgId && !isAdmin.value) {
     ElMessage.error('无法识别当前用户所属机构（Org），无法创建课包')
     return

@@ -413,7 +413,7 @@
             ></el-input>
           </el-form-item>
 
-          <el-form-item label="所属校区" prop="__selectedOrgId">
+          <el-form-item label="搜索校区范围" prop="__selectedOrgId">
             <el-select
               v-model="selectedOrgId"
               placeholder="请选择校区"
@@ -430,10 +430,10 @@
             </el-select>
             <div class="field-hint">
               <template v-if="isAdmin">
-                管理员可选择任意校区；订单的 Org 字段将由所选学生决定（后端自动）
+                校区范围仅用于过滤下方的学生/课包/课程搜索结果；订单的 Org 字段始终由当前账户固定（后端强制，等于您的所在校区）
               </template>
               <template v-else>
-                校区由当前账户固定（不可修改）
+                校区由当前账户固定（不可修改）；订单的 Org 字段将随订单一起保存
               </template>
             </div>
           </el-form-item>
@@ -670,6 +670,7 @@ import {
 } from '../../utils/enums'
 import { printTable as printTableUtil } from '../../utils/print'
 import { useAuthStore } from '../../stores/auth'
+import { useAccount } from '../../composables/useAccount'
 import { orderPackService } from '../../api/orderPack'
 import { studentService } from '../../api/student'
 import { packService } from '../../api/pack'
@@ -679,20 +680,9 @@ import { orgService } from '../../api/org'
 const authStore = useAuthStore()
 
 // ===================== 权限计算 =====================
-// 权限字段说明（authStore.user 是 Account 对象,Login 流程对 currentUser 做了 populate）:
-//   - Account.isAdmin                          : 是否超管
-//   - Account.accountType                      : 'User' | 'Student' | 'Admin'
-//   - Account.currentUser.roleTemp             : 'manager' | 'teacher' | 'admin'
-//   - Account.currentUser.Org                  : 所属机构(populate 后的 User 对象上)
-const accountType = computed(() => authStore.user?.accountType || '')
-const currentUserObj = computed(() => authStore.user?.currentUser)
-const isAdmin = computed(() => Boolean(authStore.user?.isAdmin))
-const isManager = computed(() =>
-  accountType.value === 'User' &&
-  currentUserObj.value &&
-  typeof currentUserObj.value === 'object' &&
-  currentUserObj.value.roleTemp === 'manager'
-)
+// 4 个身份 helper 走 useAccount composable，与后端 payloadChecker.js 一一对应。
+// 管理后台 (rgzw_user) 不会有 Student 登录，rgzw_wx_student 才用 Student 路径。
+const { isAdmin, isManager, currentOrgId } = useAccount()
 const canAdd = computed(() => isAdmin.value || isManager.value)
 const canEdit = computed(() => isAdmin.value)
 

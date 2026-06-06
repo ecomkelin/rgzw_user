@@ -59,7 +59,7 @@
           <div style="display: flex; justify-content: flex-end;">
             <el-button type="primary" @click="fetchCourses">查询</el-button>
             <el-button @click="resetFilters">重置</el-button>
-            <el-button type="success" @click="openCreateDialog">新增课程</el-button>
+            <el-button v-if="isManager" type="success" @click="openCreateDialog">新增课程</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -575,6 +575,7 @@ import { roomService } from '../../api/room'
 import { formatDate, formatActiveStatus, formatDateOnly } from '../../utils/format'
 import { printTable as printTableUtil } from '../../utils/print'
 import { useAuthStore } from '../../stores/auth'
+import { useAccount } from '../../composables/useAccount'
 
 // 状态变量
 const courses = ref([])
@@ -585,37 +586,30 @@ const loading = ref(false)
 const courseFormRef = ref()
 const selectedRows = ref([]) // 选中的行
 
-// 认证 store：用于获取 currentOrgId
+// 认证 store（仍保留以备：网络兜底回拉需要写回 setCurrentOrgId）
 const authStore = useAuthStore()
 
-/**
- * 当前用户所属 Org。
- * - 优先使用 store 缓存（登录后已写入 localStorage）
- * - 缺失时优先从 authStore.user.currentUser（已 populate 的对象）上直接读 .Org
- * - 仍拿不到则实时回拉一次 /user/detail/:id，写回 store
- * - 仍拿不到则返回 null：管理员可能无 Org 限制；其他用户必须拒绝新增
- */
-const currentOrgId = computed(() => authStore.currentOrgId || null)
+// 账户身份 helper（与后端 payloadChecker.js 4 个 helper 对齐）
+// Course.add 限制 isManager，"新增课程"按钮走 isManager
+const { isAdmin, isManager, currentOrgId, ensureCurrentOrgId } = useAccount()
 
-const ensureCurrentOrgId = async () => {
-  if (authStore.currentOrgId) return authStore.currentOrgId
-  const currentUser = authStore.user?.currentUser
-  if (!currentUser) return null
-  // 登录响应已 populate 时，currentUser 是对象 { _id, Org, ... }，直接取 Org
-  if (typeof currentUser === 'object') {
-    const orgId = currentUser.Org || null
-    authStore.setCurrentOrgId(orgId)
-    return orgId
-  }
-  // 兜底：currentUser 是裸 ID 字符串时才回拉，否则会把对象拼到 URL 里被后端 ObjectId 校验拒绝
+/**
+ * Courses.vue 特有：currentUser 是裸 ID 字符串时（populate 缺失），
+ * 还需要再走一次 /user/detail/:id 网络回拉 —— composable 的 sync 版本覆盖不到这一段。
+ */
+const ensureCurrentOrgIdWithFetch = async () => {
+  const cached = ensureCurrentOrgId()
+  if (cached) return cached
+  const cu = authStore.user?.currentUser
+  if (!cu || typeof cu === 'object') return cached // 对象形式已被 composable 兜住；null 时也直接返回空
   try {
-    const res = await userService.getUserById(currentUser)
+    const res = await userService.getUserById(cu)
     const orgId = res?.data?.data?.item?.Org || null
-    authStore.setCurrentOrgId(orgId)
-    return orgId
+    if (orgId) authStore.setCurrentOrgId(orgId)
+    return orgId || ''
   } catch (e) {
     console.error('Failed to fetch current user Org:', e)
-    return null
+    return ''
   }
 }
 
@@ -1034,8 +1028,8 @@ const handleSelectionChange = (selection) => {
 // 打开创建对话框
 const openCreateDialog = async () => {
   // 创建前确保拿到当前用户的 Org
-  const orgId = await ensureCurrentOrgId()
-  if (!orgId && !authStore.user?.isAdmin) {
+  const orgId = await ensureCurrentOrgIdWithFetch()
+  if (!orgId && !isAdmin.value) {
     ElMessage.error('无法识别当前用户所属机构（Org），无法创建课程')
     return
   }

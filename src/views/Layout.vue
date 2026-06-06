@@ -17,39 +17,39 @@
           <el-icon><House /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item index="/layout/accounts">
+        <el-menu-item v-if="isAdmin" index="/layout/accounts">
           <el-icon><User /></el-icon>
           <span>账户管理</span>
         </el-menu-item>
-        <el-sub-menu index="/account">
+        <el-sub-menu v-if="isManager" index="/account">
           <template #title>
             <el-icon><UserFilled /></el-icon>
             <span>用户与组织</span>
           </template>
-          <el-menu-item index="/layout/users">用户管理</el-menu-item>
-          <el-menu-item index="/layout/orgs">组织管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/users">用户管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/layout/orgs">组织管理</el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="/layout/rooms">
+        <el-menu-item v-if="isManager" index="/layout/rooms">
           <el-icon><OfficeBuilding /></el-icon>
           <span>教室管理</span>
         </el-menu-item>
-        <el-sub-menu index="/school">
+        <el-sub-menu v-if="isManager" index="/school">
           <template #title>
             <el-icon><School /></el-icon>
             <span>学校管理</span>
           </template>
-          <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
-          <el-menu-item index="/layout/courses">课程管理</el-menu-item>
-          <el-menu-item index="/layout/students">学生列表</el-menu-item>
-          <el-menu-item index="/layout/packs">课包管理</el-menu-item>
-          <el-menu-item index="/layout/orderPacks">课包订单</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/subjects">科目管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/courses">课程管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/students">学生列表</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/packs">课包管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/orderPacks">课包订单</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="/analysis">
+        <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
             <el-icon><DataAnalysis /></el-icon>
             <span>分析后台</span>
           </template>
-          <el-menu-item index="/layout/analytics">数据分析</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/analytics">数据分析</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -79,39 +79,39 @@
           <el-icon><House /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item index="/layout/accounts">
+        <el-menu-item v-if="isAdmin" index="/layout/accounts">
           <el-icon><User /></el-icon>
           <span>账户管理</span>
         </el-menu-item>
-        <el-sub-menu index="/account">
+        <el-sub-menu v-if="isManager" index="/account">
           <template #title>
             <el-icon><UserFilled /></el-icon>
             <span>用户与组织</span>
           </template>
-          <el-menu-item index="/layout/users">用户管理</el-menu-item>
-          <el-menu-item index="/layout/orgs">组织管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/users">用户管理</el-menu-item>
+          <el-menu-item v-if="isAdmin" index="/layout/orgs">组织管理</el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="/layout/rooms">
+        <el-menu-item v-if="isManager" index="/layout/rooms">
           <el-icon><OfficeBuilding /></el-icon>
           <span>教室管理</span>
         </el-menu-item>
-        <el-sub-menu index="/school">
+        <el-sub-menu v-if="isManager" index="/school">
           <template #title>
             <el-icon><School /></el-icon>
             <span>学校管理</span>
           </template>
-          <el-menu-item index="/layout/subjects">科目管理</el-menu-item>
-          <el-menu-item index="/layout/courses">课程管理</el-menu-item>
-          <el-menu-item index="/layout/students">学生列表</el-menu-item>
-          <el-menu-item index="/layout/packs">课包管理</el-menu-item>
-          <el-menu-item index="/layout/orderPacks">课包订单</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/subjects">科目管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/courses">课程管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/students">学生列表</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/packs">课包管理</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/orderPacks">课包订单</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="/analysis">
+        <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
             <el-icon><DataAnalysis /></el-icon>
             <span>分析后台</span>
           </template>
-          <el-menu-item index="/layout/analytics">数据分析</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/analytics">数据分析</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-drawer>
@@ -170,6 +170,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useAccount } from '../composables/useAccount'
 import {
   House,
   User,
@@ -194,6 +195,12 @@ const { isMobile } = useResponsive()
 const drawerVisible = ref(false)
 
 const currentUser = computed(() => authStore.user)
+
+/* ===== 菜单权限（与 router/index.js 的 requiresAdmin / requiresManager 对齐）=====
+ * 这里的 v-if 是 UX 层 —— 防止用户点进 403 页。
+ * 后端 DAO 的 isAdmin / isManager 检查才是终局防线。
+ */
+const { isAdmin, isManager } = useAccount()
 
 const pageTitle = computed(() => {
   const routeMap = {

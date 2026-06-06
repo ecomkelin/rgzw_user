@@ -10,7 +10,7 @@
  *
  * 持久化策略：
  *   - accessToken / refreshToken / user 都同步写入 localStorage
- *   - 启动时从 localStorage 恢复，并异步调用 /api/user/self 验证 token 有效性
+ *   - 启动时从 localStorage 恢复，并异步调用 /api/account/self 验证 token 有效性
  *   - 验证失败时自动清空并跳登录页
  *
  * 提供 actions：
@@ -19,9 +19,20 @@
  *   - setUser()         写入用户对象
  *   - logout()          清空所有状态 + 通知后端销毁 refresh cookie
  *   - checkAuthStatus() 主动校验 token
+ *
+ * 历史踩坑：
+ *   - checkAuthStatus 必须用 /api/account/self，不能用 /api/user/self
+ *     （Login 写入的是 Account 文档，前端读 user.isAdmin / user.accountType）
+ *   - 必须显式传 options.populate: [{ path: 'currentUser' }]
+ *     否则后端返回的 item.currentUser 是裸 ObjectId 字符串，
+ *     覆盖 localStorage 里 populate 后的 user 后，useAccount.isManager 变 false
+ *     —— 表现是「刷新页面后侧边栏所有 isManager 菜单消失」
+ *   - 即便后端 schema 改了导致响应缺字段，宁可不覆盖，也别把内存里好的 user 覆盖成残缺版
+ *     （防御性校验：必须 isAdmin 是 boolean + accountType 是 'User'|'Student' 才覆盖）
  */
 
 import { defineStore } from 'pinia'
+import apiClient from '../api/http'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -190,64 +201,61 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        // 尝试使用需要认证的端点来验证token是否有效
-        // 关键：必须用 /api/account/self，因为 store.user 是 Account 对象
+        // 必须用 /api/account/self，因为 store.user 是 Account 对象
         // （Login.vue 写入的 account 字段），前端多处代码读 user.isAdmin / user.accountType / user.currentUser
         // 旧版用 /api/user/self 会把 store.user 覆盖成 User 对象，导致 isAdmin 变 undefined
         // —— 表现是「登录时按钮在，刷新页面按钮消失」
+        //
+        // 必须显式带 options.populate: [{ path: 'currentUser' }] —— 后端 selfVD 接受这个 schema
+        // 但默认不传就不 populate，结果 item.currentUser 是裸 ObjectId 字符串；
+        // useAccount.isManager 要求 currentUser 是对象，覆盖后 isManager 直接变 false，
+        // 表现为「刷新页面后侧边栏所有 isManager 菜单消失」
+        // —— 改用 apiClient 走统一拦截器（自动 401 refresh），不再用裸 fetch
         console.log('Making request to validate token...');
-        const response = await fetch('/api/account/self', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({}) // 空body，因为self端点可能不需要参数
+        const response = await apiClient.post('/account/self', {
+          options: { populate: [{ path: 'currentUser' }] }
         })
 
-        console.log('Response status:', response.status);
+        // axios 不抛错即视为 2xx
+        console.log('Token is valid, setting authenticated status');
+        this.isAuthenticated = true
 
-        if (response.status === 401) {
-          // Token无效，清除认证状态
-          console.log('Token is invalid (401), logging out');
-          this.logout()
-          return false
-        }
+        // 解析 Account（注意：是 Account，不是 User）
+        // /api/account/self 返回 { code, success, data: { item: Account } }
+        const body = response?.data
+        const item = body?.data?.item || body?.data
 
-        if (response.status === 200 || response.status === 403) {
-          // 200表示token有效（请求成功）
-          // 403表示token有效但权限不足（这同样证明token有效）
-          console.log('Token is valid, setting authenticated status');
-          this.isAuthenticated = true
-
-          // 尝试获取 Account 信息（注意：是 Account，不是 User）
-          // localStorage 里已有 Account；只有响应带回来的 Account 与本地不一致时才覆盖
-          // （例如改了 isAdmin / currentUser 等关键字段才需要重写）
-          try {
-            const result = await response.json()
-            console.log('Response data:', result);
-            // /api/account/self 返回 { data: { item: Account } }
-            const item = result?.data?.item || result?.data
-            if (item) {
-              this.setUser(item)
-            }
-          } catch (e) {
-            // 如果解析响应失败，也不影响认证状态
-            console.warn('Could not parse user data:', e)
+        // 防御性覆盖：只有当响应是"完整 Account 文档"时才覆盖 localStorage
+        // —— 必须有 accountType + isAdmin 字段，且 currentUser 必须是已 populate 的对象
+        //   1) 后端 schema 改了 / 字段缺失 → 残缺 item 不能覆盖内存里好的 user
+        //   2) 后端没 populate → currentUser 是裸 ObjectId 字符串，useAccount.isManager 变 false
+        //      （表现是「刷新页面后侧边栏所有 isManager 菜单消失」）
+        //   所以宁可不覆盖，也别覆盖成残缺版
+        if (!item) {
+          console.warn('[auth] /account/self response has no item; keeping local user')
+        } else {
+          const isAccountTypeValid = item.accountType === 'User' || item.accountType === 'Student'
+          const isCurrentUserPopulated = item.currentUser && typeof item.currentUser === 'object'
+          if (typeof item.isAdmin === 'boolean' && isAccountTypeValid && isCurrentUserPopulated) {
+            this.setUser(item)
+          } else {
+            console.warn('[auth] /account/self response missing required fields or currentUser not populated; keeping local user', item)
           }
-
-          return true
         }
 
-        // 对于其他状态码，我们不改变isAuthenticated状态，继续保持原样
-        console.log(`Received unexpected status code: ${response.status}, keeping current authentication state`);
-        return false;
+        return true
 
       } catch (error) {
-        console.error('Network error validating token:', error)
+        // axios 拦截器已经处理了 401（refresh + logout + 跳 /login），这里只关心其他错误
+        const status = error?.response?.status
+        if (status === 401) {
+          // 拦截器已经 logout() 并跳走了，这里只返回 false
+          return false
+        }
+        console.error('Network/error validating token:', error)
         // 遇到网络错误时，不改变isAuthenticated状态，保持现有状态
         // 这样在网络不稳定时，用户不会被意外登出
-        return false;
+        return false
       }
     }
   }

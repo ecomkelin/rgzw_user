@@ -21,33 +21,40 @@ rgzw_user/
 ├── public/                    # 静态资源
 ├── src/                       # 源代码目录
 │   ├── api/                   # API 接口定义
-│   │   ├── auth.js            # 认证相关API
-│   │   └── http.js            # HTTP 客户端配置
 │   ├── assets/                # 静态资源文件
 │   ├── components/            # 公共组件
 │   │   └── AdvancedSearch.vue # 高级搜索组件
-│   ├── router/                # 路由配置
+│   ├── composables/           # Vue 3 composable
+│   │   ├── useAccount.js      # 账户身份与权限判断（isAdmin/isManager/isUser/isStudent）
+│   │   ├── useListPage.js     # 列表页通用逻辑
+│   │   ├── useResponsive.js   # 响应式断点
+│   │   └── useTour.js         # 新手引导
+│   ├── router/                # 路由配置（含 requiresAdmin/requiresManager 守卫）
 │   ├── stores/                # Pinia 状态管理
 │   │   └── auth.js            # 认证状态管理（持有 currentOrgId）
 │   ├── styles/                # 全局样式
-│   ├── utils/                 # 工具函数
+│   ├── utils/                 # 工具函数（enums.js / format.js）
 │   ├── views/                 # 页面组件
-│   │   ├── Layout.vue         # 主布局组件
+│   │   ├── Layout.vue         # 主布局组件（侧边栏按权限 v-if）
 │   │   ├── Login.vue          # 登录页面（登录后异步加载 currentUser.Org）
 │   │   ├── Dashboard.vue      # 仪表盘
-│   │   ├── accounts/          # 账户管理页面
-│   │   ├── users/             # 用户管理页面（含高级搜索功能）
-│   │   ├── orgs/              # 组织管理页面
-│   │   ├── rooms/             # 教室管理页面（含批量操作、打印功能）
-│   │   ├── subjects/          # 科目管理页面（含教学大纲、批量操作、打印功能）
-│   │   ├── courses/           # 课程管理页面（含排课规则、批量操作、打印功能、Org 范围控制）
-│   │   ├── students/          # 学员管理页面（含高级搜索功能）
-│   │   └── packs/             # 课包管理页面（按 Pack 模块 API：list/detail/add/edit/remove）
+│   │   ├── accounts/          # 账户管理页面（仅超管）
+│   │   ├── users/             # 用户管理页面（≥ 经理，Org 选择器受控）
+│   │   ├── orgs/              # 组织管理页面（仅超管）
+│   │   ├── rooms/             # 教室管理页面（≥ 经理）
+│   │   ├── subjects/          # 科目管理页面（≥ 经理）
+│   │   ├── courses/           # 课程管理页面（≥ 经理，Org 范围控制）
+│   │   ├── students/          # 学员管理页面（≥ 经理）
+│   │   ├── packs/             # 课包管理页面（≥ 经理）
+│   │   ├── orderPacks/        # 课包订单页面（≥ 经理，超管可编辑）
+│   │   └── Analytics.vue      # 数据分析
 │   ├── App.vue                # 根组件
 │   └── main.js                # 应用入口
 ├── doc/                       # 项目文档
 │   ├── COURSE_ORG_SCOPING.md  # 课程管理 Org 范围控制（v7.2.1+）
 │   └── ...
+├── tests/
+│   └── setup.js               # Vitest 全局 mock（ElMessage / matchMedia / Pinia）
 ├── index.html                 # HTML 模板
 ├── package.json               # 项目配置
 ├── vite.config.js             # Vite 配置
@@ -81,9 +88,58 @@ rgzw_user/
 - 一键重置功能
 
 ### 4. 布局组件
-- 侧边栏导航
+- 侧边栏导航（菜单项按当前账户角色 `v-if` 过滤，见下方"权限模型"）
 - 顶部导航栏
 - 内区域
+
+## 权限模型
+
+### 账户类型（v2026-06-04 起）
+
+账户类型枚举仅剩 `User` / `Student` 两种，**`Admin` 已彻底移除**：
+- 后端 `JwtUtil.js` 移除了 `Admin` 死分支
+- 前端 `utils/enums.js` 的 `ACCOUNT_TYPES` / `utils/format.js` 的 `formatAccountType` 同步清理
+- 旧 token 里的 `accountType: 'Admin'` 输入到前端 `formatAccountType` 会**原样返回**（兜底，不翻译为"管理员"）
+
+派生关系（不变量，**必须与后端 `payloadChecker.js` 一致**）：
+```
+isAdmin   ⇒  isManager   ⇒  isUser
+                            ⇓
+                        isStudent (互斥)
+```
+即 `isAdmin === true` ⇒ `roleTemp === 'manager'`。
+
+### `useAccount` composable
+
+`src/composables/useAccount.js` 是后端 `src/utils/payloadChecker.js` 4 个 helper 的前端镜像：
+
+| helper | 含义 | 后端对应 |
+|---|---|---|
+| `isUser` | `accountType === 'User'` | `payloadChecker.isUser` |
+| `isStudent` | `accountType === 'Student'` | `payloadChecker.isStudent` |
+| `isManager` | `isUser` ∧ `currentUser.roleTemp === 'manager'` | `payloadChecker.isManager` |
+| `isAdmin` | `isUser` ∧ `user.isAdmin === true` | `payloadChecker.isAdmin` |
+
+外加 `currentOrgId`（`authStore.currentOrgId`）/ `ensureCurrentOrgId()`（带 fallback 的同步读取）。
+
+**用法约定**：
+- 页面**不要**自己写 `computed(() => auth.user?.isAdmin)` —— 一律 `const { isAdmin } = useAccount()`
+- 按钮权限优先用 `v-if="isManager"`，不要在 `@click` 里 `if (!isAdmin) return`
+- Org 选择器在非超管场景下 `:disabled="!isAdmin"`，并用 `ensureCurrentOrgId()` 自动回填
+
+### 路由角色门禁
+
+`router/index.js` 路由 meta 支持两种角色门禁：
+- `meta: { requiresAdmin: true }` —— 仅超管（`accounts`、`orgs`）
+- `meta: { requiresAdmin: false, requiresManager: true }` —— 经理及以上（`users` / `rooms` / `subjects` / `courses` / `students` / `packs` / `orderPacks`）
+
+`beforeEach` 守卫读 `useAccount().isAdmin` / `isManager`，不通过则 `next('/layout/dashboard')` + `ElMessage.error(...)`。
+
+**两层防御**：
+1. **路由层**：防止 URL 直接跳转访问
+2. **DAO 层（后端）**：即便前端绕过，后端 `daoAccount` / `daoUser` / ... 也会 403
+
+前端是 UX 层，不参与权限决策。Org 字段**始终**由后端强制写 `currentUser.Org`。
 
 ## 认证机制
 

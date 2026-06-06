@@ -61,13 +61,15 @@ export const formatGender = (gender) => {
 
 /**
  * 账户类型枚举 -> 中文
- * @param {'Admin'|'User'|'Student'|string|null|undefined} accountType
+ *
+ * 历史：v2026-06-04 后端 JwtUtil.js 移除了 'Admin' 死分支，账户类型仅剩 'User' | 'Student'。
+ * 这里同步只保留这两种；'Admin' 输入会原样返回（兜底）。
+ *
+ * @param {'User'|'Student'|string|null|undefined} accountType
  * @returns {string}
  */
 export const formatAccountType = (accountType) => {
   switch (accountType) {
-    case 'Admin':
-      return '管理员'
     case 'User':
       return '公司用户'
     case 'Student':

@@ -48,9 +48,12 @@ export const SUBJECT_CATEGORY_MAP = Object.freeze(
 export const formatSubjectCategory = (c) => SUBJECT_CATEGORY_MAP[c]?.label ?? c ?? '-'
 export const subjectCategoryTagType = (c) => SUBJECT_CATEGORY_MAP[c]?.tagType ?? 'info'
 
-/** 账户类型（Account.accountType） */
+/** 账户类型（Account.accountType）
+ *
+ * 历史：v2026-06-04 后端 JwtUtil.js 移除了 'Admin' 死分支（账户类型仅剩 'User' | 'Student'）。
+ * 这里同步只保留这两种。
+ */
 export const ACCOUNT_TYPES = Object.freeze([
-  { value: 'Admin',   label: '管理员'   },
   { value: 'User',    label: '公司用户' },
   { value: 'Student', label: '学生'     }
 ])

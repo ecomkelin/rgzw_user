@@ -57,10 +57,11 @@ describe('formatGender', () => {
 })
 
 describe('formatAccountType', () => {
-  it('Admin -> 管理员', () => expect(formatAccountType('Admin')).toBe('管理员'))
+  // 历史：v2026-06-04 后端 JwtUtil.js 移除了 'Admin' 死分支
   it('User -> 公司用户', () => expect(formatAccountType('User')).toBe('公司用户'))
   it('Student -> 学生', () => expect(formatAccountType('Student')).toBe('学生'))
   it('未知值原样返回', () => expect(formatAccountType('God')).toBe('God'))
+  it("'Admin' 也原样返回（兜底，不再翻译为'管理员'）", () => expect(formatAccountType('Admin')).toBe('Admin'))
 })
 
 describe('formatActiveStatus', () => {

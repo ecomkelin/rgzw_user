@@ -77,12 +77,12 @@ describe('SUBJECT_CATEGORIES', () => {
 })
 
 describe('ACCOUNT_TYPES', () => {
-  it('包含 Admin / User / Student 三个', () => {
-    expect(ACCOUNT_TYPES.map(t => t.value)).toEqual(['Admin', 'User', 'Student'])
+  // 历史：v2026-06-04 后端 JwtUtil.js 移除了 'Admin' 死分支，账户类型仅剩 User/Student
+  it('包含 User / Student 两个（Admin 已移除）', () => {
+    expect(ACCOUNT_TYPES.map(t => t.value)).toEqual(['User', 'Student'])
   })
 
   it('formatAccountTypeEnum 已知值返回中文', () => {
-    expect(formatAccountTypeEnum('Admin')).toBe('管理员')
     expect(formatAccountTypeEnum('User')).toBe('公司用户')
     expect(formatAccountTypeEnum('Student')).toBe('学生')
   })
