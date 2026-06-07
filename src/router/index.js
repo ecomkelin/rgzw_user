@@ -15,6 +15,7 @@
  *     ├─ packs                      课包管理 (requiresManager)
  *     ├─ orderPacks                 课包订单 (requiresManager)
  *     ├─ studentPacks               学生课包 (requiresManager)
+ *     ├─ studentCourses             学生选课（requiresManager；read 对普通老师/Student 也开放，但 rgzw_user 主走管理端）
  *     └─ analytics                  数据分析 (requiresManager)
  *   /                               重定向到 /layout/dashboard
  *   /:pathMatch(.*)*                兜底重定向到 dashboard
@@ -123,6 +124,15 @@ const routes = [
         component: () => import('../views/studentPacks/StudentPacks.vue'),
         // StudentPack.dao.list / detail: isManager; add / edit: isAdmin
         // —— 列表/详情仅需 manager；add / edit 由页面级按钮 v-if="isAdmin" 控权
+        meta: { requiresAuth: true, requiresManager: true }
+      },
+      {
+        path: 'studentCourses',
+        name: 'StudentCourses',
+        component: () => import('../views/studentCourses/StudentCourses.vue'),
+        // StudentCourse.dao.list / detail: isUser (Student / 老师 / manager / isAdmin) 均可读
+        // StudentCourse.dao.add / edit:  仅 manager / isAdmin
+        // —— rgzw_user 是管理端, 因此用 requiresManager 兜底; add / edit 由页面级按钮 v-if="isManager" 控权
         meta: { requiresAuth: true, requiresManager: true }
       },
       {

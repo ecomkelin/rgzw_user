@@ -121,6 +121,26 @@ export const STUDENT_PACK_STATUS_MAP = Object.freeze(
 export const formatStudentPackStatus = (s) => STUDENT_PACK_STATUS_MAP[s]?.label ?? s ?? '-'
 export const studentPackStatusTagType = (s) => STUDENT_PACK_STATUS_MAP[s]?.tagType ?? 'info'
 
+/** 学生选课状态（StudentCourse.status）
+ *
+ * 业务背景：学生确认上课后由管理员 add 选课；后续可改状态：
+ *   - active      在读中, 正常消课
+ *   - finished    已结课, 正常完成
+ *   - dropped     退课, 管理员手动改
+ *   - transferred 转入其他课程, 管理员手动改
+ */
+export const STUDENT_COURSE_STATUS = Object.freeze([
+  { value: 'active',      label: '在读中',  tagType: 'success' },
+  { value: 'finished',    label: '已结课',  tagType: 'info'    },
+  { value: 'dropped',     label: '已退课',  tagType: 'danger'  },
+  { value: 'transferred', label: '已转课',  tagType: 'warning' }
+])
+export const STUDENT_COURSE_STATUS_MAP = Object.freeze(
+  Object.fromEntries(STUDENT_COURSE_STATUS.map(s => [s.value, s]))
+)
+export const formatStudentCourseStatus = (s) => STUDENT_COURSE_STATUS_MAP[s]?.label ?? s ?? '-'
+export const studentCourseStatusTagType = (s) => STUDENT_COURSE_STATUS_MAP[s]?.tagType ?? 'info'
+
 /** 学生课包来源（StudentPack.resource） */
 export const STUDENT_PACK_RESOURCE = Object.freeze([
   { value: 'OrderPack', label: '订单购买', tagType: 'primary' },
