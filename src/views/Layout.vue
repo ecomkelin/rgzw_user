@@ -51,6 +51,7 @@
             <span>上课管理</span>
           </template>
           <el-menu-item v-if="isManager" index="/layout/studentCourses">学生选课</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/schedule">排课管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
@@ -121,6 +122,7 @@
             <span>上课管理</span>
           </template>
           <el-menu-item v-if="isManager" index="/layout/studentCourses">学生选课</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/schedule">排课管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
@@ -232,6 +234,7 @@ const pageTitle = computed(() => {
     '/layout/orderPacks': '课包订单管理',
     '/layout/studentPacks': '学生课包管理',
     '/layout/studentCourses': '学生选课管理',
+    '/layout/schedule': '排课管理',
     '/layout/analytics': '数据分析'
   }
   return routeMap[route.path] || '管理系统'

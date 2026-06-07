@@ -136,6 +136,14 @@ const routes = [
         meta: { requiresAuth: true, requiresManager: true }
       },
       {
+        path: 'schedule',
+        name: 'Schedule',
+        component: () => import('../views/schedule/Schedule.vue'),
+        // 排课管理: 预览/生成/编辑/取消 = manager only;
+        // 四维度查询 + AI 解析 = manager+ 即可, 前端按 tab 实体做权限控制
+        meta: { requiresAuth: true, requiresManager: true }
+      },
+      {
         path: 'analytics',
         name: 'Analytics',
         component: () => import('../views/Analytics.vue'),
