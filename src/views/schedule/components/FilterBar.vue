@@ -74,7 +74,8 @@ const loadOptions = async () => {
       const r = await roomService.getRooms({ filter: { isActive: true }, options: { limit: 500 } })
       options.value = (r.data?.data?.items || []).map(c => ({ value: c._id, label: c.name }))
     } else if (props.entity === 'teacher') {
-      const r = await userService.getUsers({ filter: { isActive: true, roleTemp: 'teacher' }, options: { limit: 500 } })
+      // manager 在本系统里也能上课, 所以老师下拉要包含 manager + teacher
+      const r = await userService.getUsers({ filter: { isActive: true, roleTemp: { $in: ['teacher', 'manager'] } }, options: { limit: 500 } })
       options.value = (r.data?.data?.items || []).map(u => ({ value: u._id, label: u.nickname }))
     } else if (props.entity === 'student') {
       const r = await studentService.getStudents({ filter: { isActive: true }, options: { limit: 500 } })
