@@ -43,6 +43,7 @@
           <el-menu-item v-if="isManager" index="/layout/students">学生列表</el-menu-item>
           <el-menu-item v-if="isManager" index="/layout/packs">课包管理</el-menu-item>
           <el-menu-item v-if="isManager" index="/layout/orderPacks">课包订单</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/studentPacks">学生课包</el-menu-item>
         </el-sub-menu>
         <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
@@ -105,6 +106,7 @@
           <el-menu-item v-if="isManager" index="/layout/students">学生列表</el-menu-item>
           <el-menu-item v-if="isManager" index="/layout/packs">课包管理</el-menu-item>
           <el-menu-item v-if="isManager" index="/layout/orderPacks">课包订单</el-menu-item>
+          <el-menu-item v-if="isManager" index="/layout/studentPacks">学生课包</el-menu-item>
         </el-sub-menu>
         <el-sub-menu v-if="isManager" index="/analysis">
           <template #title>
@@ -214,6 +216,7 @@ const pageTitle = computed(() => {
     '/layout/students': '学生列表',
     '/layout/packs': '课包管理',
     '/layout/orderPacks': '课包订单管理',
+    '/layout/studentPacks': '学生课包管理',
     '/layout/analytics': '数据分析'
   }
   return routeMap[route.path] || '管理系统'

@@ -107,3 +107,27 @@ export const PAY_METHOD_MAP = Object.freeze(
   Object.fromEntries(PAY_METHOD_OPTIONS.map(m => [m.value, m]))
 )
 export const formatPayMethod = (m) => PAY_METHOD_MAP[m]?.label ?? m ?? '-'
+
+/** 学生课包状态（StudentPack.status） */
+export const STUDENT_PACK_STATUS = Object.freeze([
+  { value: 'active',    label: '激活中', tagType: 'success' },
+  { value: 'frozen',    label: '已冻结', tagType: 'warning' },
+  { value: 'exhausted', label: '已耗尽', tagType: 'info'    },
+  { value: 'refunded',  label: '已退费', tagType: 'danger'  }
+])
+export const STUDENT_PACK_STATUS_MAP = Object.freeze(
+  Object.fromEntries(STUDENT_PACK_STATUS.map(s => [s.value, s]))
+)
+export const formatStudentPackStatus = (s) => STUDENT_PACK_STATUS_MAP[s]?.label ?? s ?? '-'
+export const studentPackStatusTagType = (s) => STUDENT_PACK_STATUS_MAP[s]?.tagType ?? 'info'
+
+/** 学生课包来源（StudentPack.resource） */
+export const STUDENT_PACK_RESOURCE = Object.freeze([
+  { value: 'OrderPack', label: '订单购买', tagType: 'primary' },
+  { value: 'free',      label: '免费赠送', tagType: 'success' }
+])
+export const STUDENT_PACK_RESOURCE_MAP = Object.freeze(
+  Object.fromEntries(STUDENT_PACK_RESOURCE.map(r => [r.value, r]))
+)
+export const formatStudentPackResource = (r) => STUDENT_PACK_RESOURCE_MAP[r]?.label ?? r ?? '-'
+export const studentPackResourceTagType = (r) => STUDENT_PACK_RESOURCE_MAP[r]?.tagType ?? 'info'

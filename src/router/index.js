@@ -14,6 +14,7 @@
  *     ├─ students                   学员管理 (requiresManager)
  *     ├─ packs                      课包管理 (requiresManager)
  *     ├─ orderPacks                 课包订单 (requiresManager)
+ *     ├─ studentPacks               学生课包 (requiresManager)
  *     └─ analytics                  数据分析 (requiresManager)
  *   /                               重定向到 /layout/dashboard
  *   /:pathMatch(.*)*                兜底重定向到 dashboard
@@ -114,6 +115,14 @@ const routes = [
         component: () => import('../views/orderPacks/OrderPacks.vue'),
         // OrderPack.dao.add: isAdmin / isManager; edit: isAdmin
         // —— isManager 即可看到列表，超管在页面内能继续 edit
+        meta: { requiresAuth: true, requiresManager: true }
+      },
+      {
+        path: 'studentPacks',
+        name: 'StudentPacks',
+        component: () => import('../views/studentPacks/StudentPacks.vue'),
+        // StudentPack.dao.list / detail: isManager; add / edit: isAdmin
+        // —— 列表/详情仅需 manager；add / edit 由页面级按钮 v-if="isAdmin" 控权
         meta: { requiresAuth: true, requiresManager: true }
       },
       {
